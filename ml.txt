@@ -1,0 +1,137 @@
+# -*- coding: utf-8 -*-
+import numpy as np
+import pandas as pd
+import pandas.io.data as web
+import datetime
+
+
+def feature_plot(df):
+
+    df.sort_index(1)
+    
+    import matplotlib.pyplot as plt
+    #assign color based on win_22 True or False
+    rows=df.shape[0]
+    cols=df.shape[1]
+    pcolor="blue"
+    for i in range(rows):
+#        if df.iloc[i,cols-1]==True:
+#            pcolor="blue"
+#        else: 
+#            pcolor="yellow"
+#        #plot rows of data as if they were series data
+#        datarow=df.iloc[i,0:cols-1]
+#        datarow.plot(color=pcolor, alpha=0.7)
+        
+        datarow=df.iloc[i,:]
+        datarow.plot(color=pcolor, alpha=0.05)
+       
+    locs, labels = plt.xticks()   
+    plt.xlabel("feature index")
+    #plt.ylabel("win_lose")
+    labels=df.columns
+    
+    locs=np.arange(labels.shape[0])
+    plt.xticks( locs, labels, rotation=90 )
+    #ax.set_xticks(labels, minor=True)
+    #print (locs)
+    plt.show()
+def m_l():
+    import matplotlib.pyplot as plot
+    from sklearn import linear_model
+    lr = linear_model.LinearRegression()
+       #y=y.applymap(lambda x:1 if x else 0)
+    x_train=x.iloc[:26,:]
+    x_test=x.iloc[26:,:]
+
+    y_train=y.iloc[:26,0]              
+    y_test=y.iloc[26:,0]
+    lr.fit(x_train, y_train)
+
+    y_test_pred=lr.predict(x_test)
+    error=y_test-y_test_pred
+    import sklearn.metrics as sm
+    print ("Mean absolute error =", round(sm.mean_absolute_error(y_test, y_test_pred), 2) )
+def fit_result(y_test, y_test_pred):
+    import matplotlib.pyplot as plt
+    f=plt.figure(figsize=(7,5))
+    ax=f.add_subplot(111)
+    ax.hist(y_test-y_test_pred, bins=50)
+    ax.set_title("Histogram of Residuals")
+    
+    from scipy.stats import probplot
+    probplot(y_test- y_test_pred, plot=ax)
+    plt.show()
+#df=pd.read_excel(open(r'C:\Users\liq6\pycode\\test_Oct17', sheetname='sheet1'))
+
+
+def select_label(df):
+    dl=df[(df.p_66_fwd>df.p_44_fwd) & (df.p_44_fwd>df.p_22_fwd)]
+    ds=df[(df.p_66_fwd<df.p_44_fwd) & (df.p_44_fwd<df.p_22_fwd)]
+    
+    #only top
+    dl=dl[(dl.rtn_66_fwd_pct>0.9) & (dl.rtn_44_fwd_pct>0.9) & (dl.rtn_22_fwd_pct>0.9)]
+    ds=ds[(ds.rtn_66_fwd_pct<0.1) & (ds.rtn_44_fwd_pct<0.1) & (ds.rtn_22_fwd_pct<0.1)]
+    # long follow
+    dlf=dl[dl.close_22b>dl.close_66b]
+    #long counter
+    dlc=dl[dl.close_22b<=dl.close_66b]
+  # short follow
+    dsf=ds[ds.close_22b<ds.close_66b]
+    #short counter
+    dsc=ds[ds.close_22b>=ds.close_66b]
+    return dl, dlf, dlc, ds, dsf, dsc
+    
+def select_feature(df):
+    df=df.drop(['Unnamed: 0','ticker','25%', '50%', '75%', 'close_22b', 'close_66b', 'close_qdate', 'count',\
+      'max', 'mean', 'mean_10', 'mean_22', 'mean_252', 'mean_5', 'mean_66', 'min',\
+      'rtn_22', 'rtn_5', 'rtn_66', 'std', 'unique', 'date', 'sharpe_5', 'sharpe_22', 'sharpe_66',\
+     'p_22_sig','p_44_sig', 'p_66_sig', 'sharpe_5_pct', 'rtn_5_pct', 'sharpe_22_pct', \
+    'sharpe_66_pct', 'hv_5_pct', 'hv_22_pct', 'hv_66_pct', 'hv_252_pct', \
+    'play', 'p_22_fwd', 'p_44_fwd', 'p_66_fwd',\
+       'rtn_22_fwd', 'rtn_44_fwd', 'rtn_66_fwd', 'rtn_22_fwd_pct',\
+       'mean_510', 'mean_1022', 'mean_2266', 'mean_66252',\
+       'rtn_44_fwd_pct', 'rtn_66_fwd_pct'], axis=1)
+    return df
+
+
+def select_lfc(df):
+    dlf=df[(df.hv_22<0.25) & (df.hv_252>0.15) & (df.hv_252<0.6)\
+          & (df.p_22>0.5) & (df.hv_5<0.2)]
+
+    dlc=df[(df.hv_22>0.25) & (df.hv_252>0.15) & (df.hv_252<0.6)\
+          & (df.p_22>0.5) & (df.hv_m2y_pct>0.9)]
+
+    return dlf, dlc
+
+#a,b=select_lfc(dl)    
+#A,B=select_lfc(df)
+#print (dlf.shape[0], a.shape[0], dlc.shape[0], b.shape[0])
+#print ("A:", A.shape[0], "B:", B.shape[0])
+
+def df_enrich(df):
+    df['rtn_ma10']=df['close_qdate']/df['mean_10']-1
+    df['rtn_ma22']=df['close_qdate']/df['mean_22']-1
+    df['rtn_ma66']=df['close_qdate']/df['mean_66']-1
+    df['rtn_ma252']=df['close_qdate']/df['mean_252']-1
+    return df
+
+df=pd.read_csv(r'C:\Users\liq6\pycode\test_Oct17.csv')  
+df=df_enrich(df)
+
+
+dl, dlf, dlc, ds, dsf, dsc=select_label(df)
+lf=select_feature(dlf)
+lc=select_feature(dlc)
+sf=select_feature(dsf)
+sc=select_feature(dsc)
+
+#feature_plot(y)    
+def pre_process(df):
+    from sklearn import preprocessing
+    scaler=preprocessing.StandardScaler()
+    scaler.fit(df)
+    return scaler.transform(df).mean(axis=0)
+    
+    
+    
