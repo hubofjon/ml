@@ -77,3 +77,11 @@ anomaly_check(df)
 
 #pl_by_date.cumsum().plot()
 
+dt0=dt[['datetime', 'open', 'high', 'low', 'close',
+       'volume', 'amt', 'chg', 'pct_chg']]
+dt0['dts']=dt0['datetime']
+dt0=dt0.drop(['datetime'], axis=1)
+dt0=dt0.set_index('dts')
+df0=df[['dts','timestamp','bs','bss','pl','position','price_dealt_pctl','qty_dealt', 'amt_dealt', 'qty_recall']]
+df0=df0.set_index('dts')
+dft0=df0.join(dt0, how='outer')
