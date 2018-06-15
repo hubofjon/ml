@@ -19,7 +19,7 @@ from P_fwdtest import win_loss
 from P_options import get_option
 from P_intel import marketbeat, get_ta, get_earning_date
 
-capital=20000
+capital=200000
 DF_sp500=pd.read_csv('c:\\pycode\pyprod\constituents.csv')
 DF_etf=pd.read_csv('c:\\pycode\pyprod\etf.csv')
 df_sp500=DF_sp500.ix[:,0] #serie
@@ -291,7 +291,7 @@ def trade_track(underlying, reval_date):
 
 
 #monitor live trade risks
-def trade_track_new(underlying, reval_date):
+def trade_track_rework(underlying, reval_date):
     start_time=timer()
     df=track_data_prep()
     df=track_criteria(df)
@@ -419,9 +419,9 @@ def track_criteria(dt, underlying):  #risk monitor parameters
     dt['days_from_entry']=dt['days_all_life'] - dt['days_to_expire']
     
 # early indicator to stay or exit trade  !!
-    dt.loc[dt['days_from_entry']=='5 days','p_5_fwd']=dt['close_last']
-    dt.loc[dt['days_from_entry']=='10 days','p_10_fwd']=dt['close_last']
-#        dt['p_fwd_10']=dt['close_last']
+#    dt.loc[dt['days_from_entry']=='5 days','p_5_fwd']=dt['close_last']
+#    dt.loc[dt['days_from_entry']=='10 days','p_10_fwd']=dt['close_last']
+##        dt['p_fwd_10']=dt['close_last']
 #    dt=win_loss(dt, 10)  # keep??
 #    return dt
 #    exit
@@ -526,3 +526,5 @@ def track_show(dt):
     print("SPY equivalent share in movement:", (dt['beta']*dt['delta']*dt['close_last']).sum()/SPY)
     
 
+def track_topdown():
+    

@@ -1,25 +1,66 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Jun 14 22:52:17 2018
 
-@author: jon
-"""
 import datetime as datetime
-from P_commons import read_sql, to_sql_append, to_sql_replace
+#from P_commons import read_sql, to_sql_append, to_sql_replace
 import pandas as pd
-from P_stat import stat_beta
+import sqlite3 as db
+import pandas.io.sql as pd_sql
+import numpy as np
 
+#from P_stat import stat_beta
 
-def stat_run_rework(q_date, underlying, env='prod'): 
+#db="C:\\Users\qli1\BNS_wspace\ppy\db_op_20170907.db"
+
+def to_sql_append(df, tbl_name):
+    conn=db.connect(db)
+    pd_sql.to_sql(df, tbl_name, conn, if_exists='append')
+
+def to_sql_replace(df, tbl_name):
+    conn=db.connect(db)
+    pd_sql.to_sql(df, tbl_name, conn, if_exists='replace')  
+    
+#tbl_name is defined in query    
+def read_sql(query, q_date):
+    conn=db.connect('C:\\Users\qli1\BNS_wspace\ppy\db_op_20170907.db')
+    df=pd_sql.read_sql(query, conn)
+    return df
+
+def stat_beta(df):
+#add beta 
+    DF_sp500=pd.read_csv('C:\\Users\qli1\BNS_wspace\ppy\constituents.csv')
+    df_etf=pd.read_csv('C:\\Users\qli1\BNS_wspace\ppy\etf.csv')
+    d0=pd.DataFrame()
+    d0[['ticker','beta', 'sec']]=DF_sp500[['SYMBOL', 'beta','ETF']]
+    
+#    df['beta']=DF_sp500[DF_sp500['SYMBOL']==df['ticker']].beta.values[0]
+    df=df.merge(d0, on='ticker', how='left')
+    
+    return df
+
+def stat_run_rework(q_date, ticker='sp500'): 
 #simplified topdown stat 
     
     p_date=q_date-datetime.timedelta(380)
     ds_etf=stat_topdown(q_date,'etf')
     ds_sp=stat_topdown(q_date,'sp500') 
-    ds_etf=ds_etf[['ticker','rtn_22_pct', 'rtn_66_pct']]
-    ds_etf.rename(columns={'ticker': 'sec', 'rtn_22_pct': 'srtn_22_pct', 'rtn_66_pct':'srtn_66_pct'}, inplace=True)
+    ds_etf=ds_etf[['ticker','rtn_22_pct', 'rtn_66_pct', 'rtn_22']]
+    ds_etf.rename(columns={'ticker': 'sec', 'rtn_22_pct': 'srtn_22_pct', \
+            'rtn_66_pct':'srtn_66_pct', 'rtn_22':'srtn_22'}, inplace=True)
     df=ds_etf.merge(ds_sp, on='sec')  #form a big table to either topdown or botom up
-    
+    show_etf=['sec', 'srtn_22_pct', 'srtn_66_pct', 'srtn_22']
+
+    df=ds_etf[show_etf].merge(ds_sp, on='sec') 
+    df.sort_values(['srtn_22_pct','rtn_22_pct'],ascending=[False,False], inplace=True)
+    lead=df[df.srtn_22>0].groupby(['sec','srtn_22_pct','srtn_66_pct','srtn_22']).head(3)
+    lag=df[df.srtn_22<=0].groupby(['sec','srtn_22_pct','srtn_66_pct','srtn_22']).tail(3)
+
+    df=pd.concat([lead,lag],axis=0)
+    if ticker !='sp500':
+        df=df[df.ticker ==ticker.upper()]  #single ticker ad_hoc
+        
+    show=['sec', 'srtn_22_pct', 'srtn_66_pct', 'srtn_22',\
+           'ticker','rtn_22_pct','rtn_66_pct']   
+    return df[show]
     #select top and botom 3 sector and tickers
 #pivot table http://pbpython.com/pandas-pivot-table-explained.html    
     
@@ -107,22 +148,38 @@ def stat_topdown(q_date, underlying):
         df0['rtn_5']=df.iloc[-1,c]/df.iloc[-5,c]-1 
         df0['rtn_22']=df.iloc[-1,c]/df.iloc[-22,c]-1 
         df0['rtn_66']=df.iloc[-1,c]/df.iloc[-66,c]-1 
-#        df0['from_mean20']=df0['close_qdate']/ df0['mean_20']-1
-#        df0['from_mean50']=df0['close_qdate']/ df0['mean_50']-1     
-#        df0['from_mean200']=df0['close_qdate']/ df0['mean_200']-1
+        log_rtn=np.log(df.iloc[:,c]/df.iloc[:,c].shift(1))
+        df0['hv_22']=np.sqrt(252*log_rtn.tail(22).var())
+        df0['hv_66']=np.sqrt(252*log_rtn.tail(66).var())
         df_st=df_st.append(df0)
    
     df_st.drop(['25%', '50%', '75%','count','max','min','std','mean'], axis=1, inplace=True)
     if underlying=='sp500':
         df_st=stat_beta(df_st)  #get sector
+        df_st.dropna(inplace=True)
     elif underlying=='etf':
-        secs=['XLI','XLY','XLK','XLV','XLP','XLU','XLF','XLB','XLE']  #defined in consituents list
+        secs=['XLI','XLY','XLK','XLV','XLP','XLU','XLF','XLB','XLE','SPY']  #defined in consituents list
         df_st=df_st.loc[df_st['ticker'].isin(secs)]
+        spy_rtn_22=df_st[df_st.ticker=='SPY']['rtn_22'].values[0]
+        spy_rtn_66=df_st[df_st.ticker=='SPY']['rtn_66'].values[0]
+        df_st['rtn_22']-= spy_rtn_22
+        df_st['rtn_66']-= spy_rtn_66
+        
 #    df_stat=df_st.set_index('ticker') #ticker is set to be index
     else:
         pass
     df_st['date']=q_date     
-    df_st['rtn_5_pct']=df_st['rtn_5'].rank(pct=True)    
-    df_st['rtn_22_pct']=df_st['rtn_22'].rank(pct=True)
-    df_st['rtn_66_pct']=df_st['rtn_66'].rank(pct=True)
+    df_st['fm_mean20']=(df_st['close_qdate']/ df_st['mean_20'])-1
+    df_st['fm_mean50']=df_st['close_qdate']/ df_st['mean_50']-1     
+    df_st['fm_mean200']=df_st['close_qdate']/ df_st['mean_200']-1
+    df_st['fm_hi252']=df_st['close_qdate']/ df_st['hi_252']-1
+    df_st['fm_lo252']=df_st['close_qdate']/ df_st['lo_252']-1
+    
+    df_st['rtn_5_pct']=df_st['rtn_5'].rank(pct=True)*10
+    df_st['rtn_22_pct']=df_st['rtn_22'].rank(pct=True)*10
+    df_st['rtn_66_pct']=df_st['rtn_66'].rank(pct=True)*10
+    
+    df_st['p_22_sig']=df_st['close_qdate']*df_st['hv_252']*np.sqrt(22)/ np.sqrt(252)
+    df_st['p_66_sig']=df_st['close_qdate']*df_st['hv_252']*np.sqrt(66)/ np.sqrt(252)
+
     return df_st
