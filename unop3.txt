@@ -1,0 +1,39 @@
+def get_unop():
+
+#ref: http://yizeng.me/2014/04/08/get-text-from-hidden-elements-using-selenium-webdriver/ 
+    from lxml import html
+    from selenium.webdriver.chrome.options import Options
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.keys import Keys
+    from selenium.common.exceptions import TimeoutException   
+    from bs4 import BeautifulSoup
+    
+    chrome_options=Options()
+    chrome_options.add_argument("--disable-popup")
+    chrome_options.add_extension(r"c:\pycode\Github\extension_1_0_7_overlay_remove.crx")
+    chrome_options.add_extension(r"c:\pycode\Github\extension_1_13_8.crx")  #fairad
+    #chrome_options.add_extension(r"G:\Trading\Trade_python\pycode\Github\extension_0_3_4.crx")
+    chrome_options.add_argument('--always-authorize-plugins=true')
+    chrome_options.add_argument("--disable-notifications")
+    chrome_options.add_argument("--start-maximized")  #full screen
+    x=r"C:\Users\jon\AppData\Local\Google\Chrome\User Data\Default"
+    chrome_options.add_argument("user-data-dir=%s"%x)
+    url="https://marketchameleon.com/Reports/UnusualOptionVolumeReport"
+    gecko="c:\\pycode\Github\chromedriver.exe"
+    driver=webdriver.Chrome(executable_path="c:\pycode\Github\chromedriver.exe", \
+        chrome_options=chrome_options)
+    driver.get(url)
+    time.sleep(3)
+    html=driver.page_source
+    soup=BeautifulSoup(html, 'lxml')
+    table=soup.find("table",{"id":"opt_unusual_volume"})
+    for row in table.find_all('tr'):
+        for td_tags in row.find_all('td'):
+            print(td_tags.get_text())
+        
+    driver.close()
+    driver.quit()
+    
