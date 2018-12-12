@@ -6,7 +6,22 @@ Function:
     2. eod_to_sql_append
     3. update_price_google (same day or hisotrical)
     4. update_price_today_yahoo
-        
+ df_bc.head(1)
+Out[334]: 
+   index ticker  price type  strike   oexp_dt    dte  bid  midpoint  ask  \
+0      0    HTZ  16.24  Put    3.00  01/17/20 403.00 0.10      0.15 0.20   
+
+   last      vol     oi  v_oi       iv      date  ba_pct bs sweep  
+0  0.20 14500.00 214.00 67.76  108.70%  12/10/18    1.00  b     b  
+
+
+bc. DTE (days to expire), midpoint, vol, bs, type
+
+dpv.columns
+Out[337]: Index(['date', 'ticker', 'close', 'high', 'low', 'open', 'volume'],
+
+R_update_price (trig_run)
+       
 @author: jon
 """
 
