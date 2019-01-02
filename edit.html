@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div>
+        <h2>Welcome </h2>
+
+        <p><a href="{{ url_for('main') }} ">List trds</a></p>
+
+        <h3>Update trd records</h3>
+
+        <form action="{{ url_for('edit', ticker=t.ticker, tgt_dt=t.tgt_dt, exit_dt=t.exit_dt, mp=t.mp, tgt_p=t.tgt_p,
+          ic1=t.ic1, ip1=t.ip1, ic2=t.ic2, ip2=t.ip2, comm=t.comm,oc1=t.oc1, op1=t.op1, oc2=t.oc2, op2=t.op2) }}" method="post">
+
+            ticker:<br />
+            <input type="text" name="ticker" value="{{t.ticker}}"/><br />
+            mp:<br />
+            <input type="text" name="mp" value="{{t.mp}}"/><br />
+            exit_dt:<br />
+            <input type="text" name="exit_dt" value="{{t.exit_dt}}"/><br />
+            tgt_dt:<br />
+            <input type="text" name="tgt_dt" value="{{t.tgt_dt}}"/><br /><br />
+            tgt_p:<br />
+            <input type="text" name="tgt_p" value="{{t.tgt_p}}"/><br /><br />
+            ic1:<br />
+            <input type="text" name="ic1" value="{{t.ic1}}"/><br />
+            ip1:<br />
+            <input type="text" name="ip1" value="{{t.ip1}}"/><br />
+            ic2:<br />
+            <input type="text" name="ic2" value="{{t.ic2}}"/><br />
+            ip2:<br />
+            <input type="text" name="ip2" value="{{t.ip2}}"/><br /><br />
+            comm:<br />
+            <input type="text" name="comm" value="{{t.comm}}"/><br /><br />
+            oc1:<br />
+            <input type="text" name="oc1" value="{{t.oc1}}"/><br />
+            op1:<br />
+            <input type="text" name="op1" value="{{t.op1}}"/><br />
+            oc2:<br />
+            <input type="text" name="oc2" value="{{t.oc2}}"/><br />
+            op2:<br />
+            <input type="text" name="op2" value="{{t.op2}}"/><br /><br />
+            comm:<br />
+            <button type="submit">Submit Change</button>
+        </form>
+
+        <p>{{message}}</p>
+
+    </div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+        <div>
+            <h3>Current list</h3>
+            {% for t in trades %}
+                <div>
+                    ticker: {{t.ticker}}<br />
+                    mp: {{t.mp}}<br />
+                    exit_dt: {{t.exit_dt}}<br />
+                    tgt_dt: {{t.tgt_dt}}<br />
+                    tgt_p: {{t.tgt_p}}<br />
+                    ic1: {{t.ic1}}<br />
+                    ip1: {{t.ip1}}<br />
+                    ic2: {{t.ic2}}<br />
+                    ip2: {{t.ip2}}<br />
+                    comm: {{t.comm}}<br />
+                    oc1: {{t.oc1}}<br />
+                    op1: {{t.op1}}<br />
+                    oc2: {{t.oc2}}<br />
+                    op2: {{t.op2}}<br />
+                    <a href="{{url_for('edit', ticker=t.ticker, mp=t.mp, exit_dt=t.exit_dt, tgt_dt=t.tgt_dt,
+                      tgt_p=t.tgt_p, ic1=t.ic1, ip1=t.ip1, ic2=t.ic2, ip2=t.ip2, comm=t.comm,
+                      oc1=t.oc1, op1=t.op1, oc2=t.oc2, op2=t.op2)}}">Edit trd</a><br />
+
+                    &nbsp;&nbsp;
+                    <br /><br />
+                </div>
+            {% endfor %}
+
+        </div>
+{% endblock %}
