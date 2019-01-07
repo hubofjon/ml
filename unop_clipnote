@@ -3,6 +3,7 @@
 3. add db copy
 4. update track_raw()
 5. to add trd_candy flask entry? <YES>
+6. add tbl_trade_candy in candy_to_trd()
 
 
 @copy db daily
