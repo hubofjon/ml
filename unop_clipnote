@@ -1,0 +1,26 @@
+1. add 'bet' to tbl_spec_candy
+2. update flask/template
+3. add db copy
+4. update track_raw()
+5. to add trd_candy flask entry? <YES>
+
+
+@copy db daily
+from shutil import copyfile
+db_source=r"C:\Users\qli1\BNS_wspace\flask\f_trd.db"
+db_dest=r"C:\Users\qli1\BNS_wspace\flask\f_trd_bkup.db"
+copyfile(db_source, db_dest)
+
+@webpage ready:
+import requests
+urls=["https://marketchameleon.com/Reports/UnusualOptionVolumeReport", ]
+def url_ok(urls):
+	for url in urls:
+		r = requests.head(url)
+		print(url, r.status_code == 200)
+
+@track
+a=da.groupby('act')['pct'].sum()
+b=da.groupby('act')['value'].sum()
+z=list(zip(a,b)
+pd.DataFrame(z,columns=['pct','value'],index=a.index)
