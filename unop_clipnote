@@ -1,10 +1,24 @@
-1. add 'bet' to tbl_spec_candy
-2. update flask/template
-3. add db copy
-4. update track_raw()
-5. to add trd_candy flask entry? <YES>
-6. add tbl_trade_candy in candy_to_trd()
+TASK:
+0. FIX intel-lame
+1. track_raw() - error cap, str float
+2. candy_template fix
+3. mc_intel, untel (too many lame)
+4. spike_profile
+5. bc _etf/inx 
+6. Flask_ track view (easier)
+7. earn_dt, div_dt (substring fix)
 
+MAIN
+1. FIX - get_earning_ec
+2. FIX - get_op (IV rank, chart)
+2. Data integrity - Alchemy
+3. FLASK - display table
+4. Intel - Spike/ HV profile -> pattern
+5. Vol arb - IV map HV / HV predict
+6. Auto - dnld/ Cloud
+
+Resource:
+https://pandas.pydata.org/pandas-docs/stable/cookbook.html
 
 @copy db daily
 from shutil import copyfile
