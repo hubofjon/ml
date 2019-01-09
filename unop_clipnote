@@ -1,3 +1,4 @@
+mc , bc (call %, ingore last price? so b/s does not matter)
 TASK:
 0. FIX intel-lame
 1. track_raw() - error cap, str float
