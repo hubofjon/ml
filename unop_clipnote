@@ -2,7 +2,9 @@ a. add field "way","pc" to tbl_c
 b. update pc,way, lsn, note in tbl_c via flask
 c. update R-track.py
 d. fix R-track bug
-e. 
+e. update tgt_dt, tgt_p (per spike_profile check)
+f. R-track: con_exit_no_change (tgt_dt passed spike freq expected)
+g. spike check for LP: TRGP, GPS, CMCSA (catalyst, spike profile)
 
 mc , bc (call %, ingore last price? so b/s does not matter)
 
