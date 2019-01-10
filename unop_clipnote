@@ -1,3 +1,9 @@
+@home
+1. trd_to_candy (also from tbl_spec_candy
+2. candy_to_trd (flask template: candy_main update to tbl_c? append)
+3. intel (bc/mc -> filter high p, c, or p/c coexit, remove sweep b/s logic)
+
+
 a. add field "way","pc" to tbl_c
 b. update pc,way, lsn, note in tbl_c via flask
 c. update R-track.py
