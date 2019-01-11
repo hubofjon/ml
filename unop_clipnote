@@ -1,3 +1,44 @@
+@Jan.11
+candy_action
+@jan.11: exetreme: LL, interfore, west fraser, canfor
+use 'lsnv', 'play','pc' ->standardize;
+Intel-2:
+ sec reverse -> tick. top/bot  (pure p action)
+  (spike profile)
+
+idealy
+iv_chg, p_chg, p/c, buy/sell, iv_rank, iv, to_spike, earn_dt, event_dt -> play
+
+TASK:
+! track_alert (div/earn/evnt_dt
+! intel (lame, c_pct, vol_pct, bc/mc/code review--> too many)
+! Flask_spec (table view or add main menu)  date1, t1, t2
+
+@Jan.10
+1. updated candy_to_trd (to add 'lsn','note','pc' to tbl_mc_raw, tbl_mc_candy, tbl_trade_candy
+2. update flask_candy_main (add lsn, note, pc, bet field)
+3. updated unop_bc()  <change criteria)
+4. 
+
+
+0. FIX intel-lame
+1. track_raw() - error cap, str float, 
+2. candy_template fix
+3. mc_intel, untel (too many lame)
+4. spike_profile
+5. bc _etf/inx 
+6. Flask_ track view (easier)
+7. earn_dt, div_dt ("re.search('(\d{1,2}-\d{2}-\d{4})',e1).group(0)")
+
+MAIN
+1. FIX - get_earning_ec
+2. FIX - get_op (IV rank, chart)
+2. Data integrity - Alchemy
+3. FLASK - display table
+4. Intel - Spike/ HV profile -> pattern
+5. Vol arb - IV map HV / HV predict
+6. Auto - dnld/ Cloud
+
 @home
 1. trd_to_candy (also from tbl_spec_candy
 2. candy_to_trd (flask template: candy_main update to tbl_c? append)
