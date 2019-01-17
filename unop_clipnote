@@ -1,3 +1,6 @@
+@Jan16
+mc_bc: df print unique ticker only
+
 @Jan15
 candy_to_trd( add from bc, spec_candy)
   track_raw could not convert string to floatdt['ts_chg'] = dt['rtn_22_pct'].astype(fl (need to prefill with value?)
