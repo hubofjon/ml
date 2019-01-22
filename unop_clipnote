@@ -1,3 +1,21 @@
+@jan.22
+Priority:
+0. flask input( spec/candy/trd ->enforce data validty check: dt, 
+   data_check(): flask input, web status ready, before daily routine
+   flow: 
+   data_check(), backup_db()
+   daily: 	spec_candy(s_list)-> @spec_edit 
+			@trd_edit -> track_raw
+		
+   if trd_entry:  trd_candy(t_list)-> @candy_edit ->trd_entry()
+  
+
+1. intel - iv_rank, ear_dt, leads: repeat, stk_vol move, sec rotate/top/botom, LCS
+
+2. track - simple/all ast
+3. spike profile plot/quantify
+4. Flask - table, 
+5. bc_etf
 @Jan16
 mc_bc: df print unique ticker only
 
