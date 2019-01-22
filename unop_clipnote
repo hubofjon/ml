@@ -1,5 +1,5 @@
-@jan.22
-Priority:
+Jan.22
+@ Priority:
 0. flask input( spec/candy/trd ->enforce data validty check: dt, 
    data_check(): flask input, web status ready, before daily routine
    flow: 
@@ -16,52 +16,40 @@ Priority:
 3. spike profile plot/quantify
 4. Flask - table, 
 5. bc_etf
-@Jan16
-mc_bc: df print unique ticker only
 
-@Jan15
-candy_to_trd( add from bc, spec_candy)
-  track_raw could not convert string to floatdt['ts_chg'] = dt['rtn_22_pct'].astype(fl (need to prefill with value?)
-
-@Jan.14 home
-mc_intel ( catalyt - earn_dt>q_date )
-to include pure 100%call or put?
-!! allocation/play: quick in out
-
-
-
-@Jan.11
-candy_action
-@jan.11: exetreme: LL, interfore, west fraser, canfor
-use 'lsnv', 'play','pc' ->standardize;
-Intel-2:
- sec reverse -> tick. top/bot  (pure p action)
-  (spike profile)
-
-idealy
-iv_chg, p_chg, p/c, buy/sell, iv_rank, iv, to_spike, earn_dt, event_dt -> play
-
-TASK:
-! track_alert (div/earn/evnt_dt
-! intel (lame, c_pct, vol_pct, bc/mc/code review--> too many)
-! Flask_spec (table view or add main menu)  date1, t1, t2
-
-@Jan.10
-1. updated candy_to_trd (to add 'lsn','note','pc' to tbl_mc_raw, tbl_mc_candy, tbl_trade_candy
-2. update flask_candy_main (add lsn, note, pc, bet field)
-3. updated unop_bc()  <change criteria)
-4. 
-
-
-0. FIX intel-lame
-1. track_raw() - error cap, str float, 
-2. candy_template fix
-3. mc_intel, untel (too many lame)
-4. spike_profile
-5. bc _etf/inx 
+@ candy_action:
+. bc _etf/inx 
 6. Flask_ track view (easier)
 7. earn_dt, div_dt ("re.search('(\d{1,2}-\d{2}-\d{4})',e1).group(0)")
 
+@ spike:
+1. plot_all (earn_dt, div_dt, ma, opt_vol, stk_vol, iv, hv)
+2. hv_20/60 overlay: agree? trend, mark iv_30
+3. spike_7 day (or cust)
+4. spike_quantify: well behave, 2_std_window?
+5. hv/iv overlay: hv pattern? hv to predict iv valuation->decide play/expire
+(mc.com iv 1 year chart)
+
+MAIN
+1. FIX - get_earning_ec
+2. FIX - get_op (IV rank, chart)
+2. Data integrity - Alchemy
+3. FLASK - display table
+4. Intel - Spike/ HV profile -> pattern
+5. Vol arb - IV map HV / HV predict
+6. Auto - dnld/ Cloud
+7. new info: twit/news/ <avoid surprise>
+8. insider
+9. fundamental: leverage info.
+10. barometer: fx/etf
+11.ideas: BB monthy?
+
+@track_raw():
+Fix get _op to get iv rank
+
+
+Resource:
+https://pandas.pydata.org/pandas-docs/stable/cookbook.html
 MAIN
 1. FIX - get_earning_ec
 2. FIX - get_op (IV rank, chart)
