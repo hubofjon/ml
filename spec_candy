@@ -31,3 +31,16 @@
 31   DLPH          MAR17.5C@1*6.5k bot   LC
 32    EQT            F22C@0.85*11K bot   LC
 33    RRC            jUN12P@1.7*8K SOD   SP
+34   GLNG            f22.5c@0.85*6KBOT     500000
+35    PPL         20J25p@0.95*2.5K BOT     250000
+36   VIPS              20J7c@1.7*5K BW       None
+37   HSIC        jul77/67p@3.5*2.5kbot    1000000
+38   EXEL              F25C@0.9*5K BOT     450000
+39      I              M23c@3.3*4k BOT    1500000
+40   BCRX            Mar23c*3.3*4k bot   12000000
+41    CVE             mAR8C@0.6*8K BOT     480000
+42    EMR   Jun65c/60p stra@5.3*1k bot     525000
+43    GPS     21J25-25p@-0.25*1300 bot       None
+44   JACK                                    None
+45     SQ           jUN60P@3.55*5K BOT    2000000
+46    THC            21J30c@4.5*5k bot    2250000
