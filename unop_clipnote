@@ -1,3 +1,9 @@
+eoddate backup source:
+https://pypi.org/project/eoddata-client/#history
+https://medium.com/python-data/quandl-getting-end-of-day-stock-data-with-python-8652671d6661
+http://www.csidata.com/factsheets.php?type=stock&format=html&exchangeid=AMEX
+
+
 Jan.22
 @ Priority:
 0. flask input( spec/candy/trd ->enforce data validty check: dt, 
