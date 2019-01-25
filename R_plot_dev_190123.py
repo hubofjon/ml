@@ -31,8 +31,8 @@ def plot_t(df):
     import matplotlib.gridspec as gridspec   
     buckets=[-4,-3,-2,-1,0,1,2,3,4]
     
-    fig, ax = plt.subplots(nrows=3, ncols=2, figsize=(15, 12))
-    ax1, ax2, ax3, ax4, ax5, ax6 = ax.flatten()
+    fig, ax = plt.subplots(nrows=4, ncols=2, figsize=(15, 12))
+    ax1, ax2, ax3, ax4, ax5, ax6, ax7, ax8 = ax.flatten()
     
     df['log_rtn']=np.log(1+df['close'].pct_change())
     
@@ -40,7 +40,7 @@ def plot_t(df):
     df['hv_20']=df['std_20']*(252**0.5)
     df['p_std_20']= df['close']*df['std_20']
     df['spike_1d']=(df['close']-df['close'].shift(1))/df['p_std_20'].shift(1)
-    df['bucket_1d'] = pd.cut(df['spike_1d'], bins=buckets)
+
 
 #    b_count=df.bucket.value_counts()
 #    b_pct=df.bucket.value_counts(normalize=True)
@@ -59,23 +59,36 @@ def plot_t(df):
     df[['hv_20','hv_60']].plot(kind='line', title='hv', ax=ax1)
 #    ax.set_xlim(xmin=df['date'][0], xmax=df['date'][-1])
     ax1.legend(loc='upper left')
-    fig.tight_layout()
+#    fig.tight_layout()
 
 #ax2: 
     
 #ax3: spike_1d    
-    df.plot(x='date',y='spike_1d', kind='bar', title="spike_1d", ax=ax3)# rot=45, ax=ax3)
-    plt.show()
+    df.plot(x='date',y='spike_1d', kind='bar', title="spike_1d", ax=ax7)# rot=45, ax=ax3)
+    
 
 #ax5: spike_1d_distribution
     df['spike_1d'].plot(kind='hist',xticks=buckets, title="spkike_1d_distribution", ax=ax5)
 
 #ax7: spike_1d_dist_stat
     
-     
+    df['bucket_1d'] = pd.cut(df['spike_1d'], bins=buckets)
+    b_count_1d=df.bucket_1d.value_counts()
+    b_pct_1d=df.bucket_1d.value_counts(normalize=True)
+    bucket_view_1d=pd.concat([b_count_1d,b_pct_1d], axis=1, keys=['count_1d', '%'])
+    ax7.text(1,1,"bucket_view_1d")
+    
+#ax8:
+    data = [[ 66386, 174296,  75131, 577908,  32015],\
+        [ 58230, 381139,  78045,  99308, 160454],\
+        [ 89135,  80552, 152558, 497981, 603535],\
+        [ 78415,  81858, 150656, 193263,  69638],\
+        [139361, 331509, 343164, 781380,  52269]]
+#    plt.table(cellText=data, loc='bottom', ax=ax8)  
+    ax8.table(cellText=data, loc='bottom')
+    plt.show()
     return df
-    
-    
+   
     
 def plot_grid():
     import matplotlib.pyplot as plt
