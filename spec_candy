@@ -48,3 +48,13 @@
 48   MCHP             mAR80C@2*10k sod      SC       None
 49    MTZ           MAR43/38P@2*3k bot     LPV     600000
 50    THS            F1560C@2.2*2K BOT      LC     440000
+51   MRVL             MAR16P@0.48*5K BOT      LP     250000
+52    NIO              mar7p@1.25*3k bot      LP     380000
+53     BX     F1 32.5p@.27*3k bot, e@j31      LP       None
+54    CLF                mar9p@.7*6k sod      SP       None
+55    MDR              mar11c@0.3*2k bot      LC      60000
+56    MET                                              None
+57     MU              F37P@0.95*10k bot      LP    1000000
+58    NRG             jUN34P@0.9*20k bot      LP    1800000
+59    TGT          JUL82.5C@1.63*12k bot      LC    1800000
+60    WDC  F41P@1.2*10k, M45c@3.1*3k bot     LCP   12000000
