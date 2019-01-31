@@ -31,7 +31,7 @@ df.dropna(inplace=True)
 df=df.tail(310)
 df=df.reset_index()
 
-def plot_spikes(q_date, spec_list=['']):
+def plot_fulls(q_date, spec_list=['']):
     p_date=q_date - datetime.timedelta(350)
     spec_tuple=tuple(spec_list)
     if len(spec_list)>1:
@@ -49,10 +49,10 @@ def plot_spikes(q_date, spec_list=['']):
         plot_spike(df)
     print(" plot_spikes completed" )
         
-def plot_spike(df):
+def plot_full(df):
 #https://realpython.com/python-matplotlib-guide/
 #Data prepare
-    s_interval=7 #spike_interval
+    s_interval=20 #spike_interval
     
     df['log_rtn_d']=np.log(1+df['close'].pct_change())
     df['std_20']=df['log_rtn_d'].rolling(20).std()
@@ -132,7 +132,7 @@ def plot_spike(df):
               loc='center')
     
 #ax11: next spike_d date>sig_std   
-    sig=2
+    sig=3
     con_sig_d=np.abs(df['spike_d'])>=sig
     dd=df[con_sig_d]
     dd['idx']=dd.index
@@ -212,6 +212,8 @@ def norm_test(serie, ax):
     return p_value
 #https://medium.com/@rrfd/testing-for-normality-applications-with-python-6bf06ed646a9
 # shapre understand: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3693611/   
+#https://matplotlib.org/tutorials/introductory/lifecycle.html#the-lifecycle-of-a-plot
+
 def plot_blend(serie, buckets,ax, color):
     import matplotlib.transforms as transforms
     import matplotlib.patches as mpatches
@@ -269,7 +271,7 @@ def plot_base(q_date, ticks='', do=''): #ticks =['x','y'], do(unop)
     ticks = [x.upper() for x in ticks]
     p_date=q_date-datetime.timedelta(100)
     qry="SELECT * FROM tbl_pv_all  wHERE date BETWEEN '%s' AND '%s'" %(p_date, q_date)
-    dp=read_sql(qry,q_date)
+    dp=read_sql(qry)
     pd.set_option('display.expand_frame_repr', False)
     for t in ticks:
         if t in dp.ticker.unique():
@@ -305,4 +307,264 @@ def plot_base(q_date, ticks='', do=''): #ticks =['x','y'], do(unop)
 #            for label in ax.xaxis.get_ticklablels():
 #                label.set_rotatiion(45)
             plt.show()
-    pd.set_option('display.expand_frame_repr', True)      
+    pd.set_option('display.expand_frame_repr', True)   
+    
+#def cdl_weekday(ohlc_data, ax, fmt='%b %d', freq=7, **kwargs):
+    #cdl_data prior to date2num
+def cdl_weekday(cdl_data, ax, fmt='%b %d', freq=7, **kwargs):
+        """ Wrapper that artificially spaces data to avoid gaps from weekends """
+#        from matplotlib.finance import candlestick_ohlc as cdl
+        import matplotlib.dates as mdates
+        # Convert data to numpy array
+        cdl_data_arr = np.array(cdl_data)
+        cdl_data_arr2 = np.hstack(
+            [np.arange(cdl_data_arr[:,0].size)[:,np.newaxis], cdl_data_arr[:,1:]])
+        ndays = cdl_data_arr2[:,0]  # array([0, 1, 2, ... n-2, n-1, n])
+        
+        # Convert matplotlib date numbers to strings based on `fmt`
+        dates = mdates.num2date(cdl_data_arr[:,0])
+        date_strings = []
+        for date in dates:
+            date_strings.append(date.strftime(fmt))
+        # Plot candlestick chart
+#        cdl(ax, ohlc_data_arr2, **kwargs)
+        # Format x axis
+        ax.set_xticks(ndays[::freq])
+        ax.set_xticklabels(date_strings[::freq], rotation=45, ha='right')
+        ax.set_xlim(ndays.min(), ndays.max())
+        return cdl_data, ax
+# better sample:   https://stackoverflow.com/questions/13128647/matplotlib-finance-volume-overlay
+ #   https://stackoverflow.com/questions/50203612/how-to-add-the-volume-bar-charts-in-python
+
+def plot_pv(q_date, ax='', ticks='', do=''): #ticks =['x','y'], do(unop)
+#    import plotly.plotly as plty
+#    import plotly.graph_objs as plgo
+    import matplotlib.pyplot as plt
+    from matplotlib.finance import candlestick_ohlc as cdl
+#    from matplotlib.dates import DateFormatter, WeekdayLocator, DayLocator, MONDAY
+#    import matplotlib.ticker as mticker
+    import matplotlib.dates as mdates
+    import matplotlib
+    from matplotlib.dates import num2date
+#    from matplotlib.dates import date2num
+#    mondays = WeekdayLocator(MONDAY)        # major ticks on the mondays
+#    alldays = DayLocator()              # minor ticks on the days
+#    weekFormatter = DateFormatter('%b %d')  # e.g., Jan 12
+#    dayFormatter = DateFormatter('%d')      # e.g., 12
+    ticks = [x.upper() for x in ticks]
+    p_date=q_date-datetime.timedelta(200)
+    qry="SELECT * FROM tbl_pv_all  wHERE date BETWEEN '%s' AND '%s'" %(p_date, q_date)
+    dp=read_sql(qry)
+    pd.set_option('display.expand_frame_repr', False)
+    for t in ticks:
+        if t in dp.ticker.unique():
+            dt=dp[dp.ticker == t]
+            dt=dt.sort_values('date', ascending=True)
+            
+            dt['ma_20']=dt['close'].rolling(20).mean()
+            dt['ma_50']=dt['close'].rolling(50).mean()
+            dt=dt[['date','open','high','low','close','volume', 'ma_20','ma_50']]
+            dt.dropna(inplace=True)
+            dt=dt.tail(80)
+            dt['date']=dt['date'].astype(str).apply(lambda x: x[:10])
+            dt['date']=pd.to_datetime(dt['date'],format='%Y-%m-%d')# %H:%M:%S.%f')
+            dt['date']=dt['date'].map(mdates.date2num)
+            fig=plt.figure()
+#            ax=fig.subplot2grid((5,4),(0,0),rowspan=4, colspan=4)
+            if 0:
+                ax = fig.add_subplot(1,1,1)
+#            cdl_data, ax=cdl_weekday(dt, ax)
+            ax_date=dt.date.values
+#            ax_date= [x[0] for x in cdl_data]
+            ax_open=dt.open.values
+            ax_high=dt.high.values
+            ax_low=dt.low.values
+            ax_close=dt.close.values
+            ax_volume=dt.volume.values
+            ax_ma_20=dt.ma_20.values
+            ax_ma_50=dt.ma_50.values
+            ax_data= zip(ax_date, ax_open, ax_high, ax_low, ax_close, ax_volume)
+            
+            ax.plot(ax_date, ax_ma_20, 'y-', label='ma_20')
+            ax.plot(ax_date, ax_ma_50, 'b-', label='ma_50')
+            plt.legend()
+            cdl(ax, ax_data, width=0.6, colorup='g', colordown='r')
+            
+            # shift y-limits of the candlestick plot so that there is space at the bottom for the volume bar chart
+            pad = 0.6
+            yl = ax.get_ylim()
+            ax.set_ylim(yl[0]-(yl[1]-yl[0])*pad,yl[1])
+            ax2 = ax.twinx()
+            # set the position of ax2 so that it is short (y2=0.32) but otherwise the same size as ax
+            ax2.set_position(matplotlib.transforms.Bbox([[0.125,0.1],[0.9,0.32]]))
+            # make bar plots and color differently depending on up/down for the day
+            pos = ax_open-ax_close <0
+            neg = ax_open-ax_close >0
+    
+            ax2.bar(ax_date[pos], ax_volume[pos],color='green',width=0.6,align='center')
+            ax2.bar(ax_date[neg], ax_volume[neg],color='red',width=0.6,align='center')
+ #           plt.setp(ax2.get_xticklabels(),visible=False)
+            #scale the x-axis tight
+            ax2.set_xlim(min(ax_date),max(ax_date))
+            # the y-ticks for the bar were too dense, keep only every third one
+#            yticks = ax2.get_yticks()
+#            ax2.set_yticks(yticks[::3])
+#            ax2.yaxis.set_label_position("right")
+#            ax2.set_ylabel('Volume', size=20)
+#            plt.ylabel('Volume')
+#            for label in ax.xaxis.get_ticklablels():
+#                label.set_rotatiion(45)
+            xt = ax.get_xticks()
+            new_xticks = [datetime.date.isoformat(num2date(d)) for d in xt]
+            ax.set_xticklabels(new_xticks,rotation=45, horizontalalignment='right')
+            plt.ion()
+            plt.show()
+
+
+def plot_semi(q_date, tick='', do=''):
+    #plot_grid: ax1: pv_ma, ax2: hv_spike, ax3: tbl_stat,norm, 
+    import matplotlib.pyplot as plt
+    import matplotlib.gridspec as gridspec
+    def make_ticklabels_invisible(fig):
+        for i, ax in enumerate(fig.axes):
+            ax.text(0.5, 0.5, "ax%d" % (i+1), va="center", ha="center")
+            ax.tick_params(labelbottom=False, labelleft=False)
+    f = plt.figure(figsize=(5,5))
+    ax_1= plt.subplot2grid((5,5),(0,0),colspan=4, rowspan=3)
+    ax_2= plt.subplot2grid((5,5),(0,4),colspan=1, rowspan=5)
+    ax_3= plt.subplot2grid((5,5),(3,0),colspan=4, rowspan=2)    
+#    make_ticklabels_invisible(f)   
+#ax_1: pv_ma
+    plot_pv(q_date, ax_1, tick)
+    
+
+
+
+
+    plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def plot_cdl_orig(df):
+#  https://stackoverflow.com/questions/13128647/matplotlib-finance-volume-overlay
+    import numpy as np
+    import matplotlib
+    import matplotlib.pyplot as plt
+#    from mpl_finance import candlestick_ochl as candlestick
+#    from mpl_finance import volume_overlay3
+    from matplotlib.finance import candlestick2_ohlc as cdl
+    from matplotlib.finance import volume_overlay3
+    from matplotlib.dates import num2date
+    from matplotlib.dates import date2num
+    import matplotlib.mlab as mlab
+    import datetime
+    import matplotlib.dates as mdates
+#    datafile = 'data.csv'
+#    r = mlab.csv2rec(datafile, delimiter=';')
+#    # the dates in my example file-set are very sparse (and annoying) change the dates to be sequential
+#    for i in range(len(r)-1):
+#        r['date'][i+1] = r['date'][i] + datetime.timedelta(days=1)
+    
+#    candlesticks = zip(date2num(r['date']),r['open'],r['close'],r['max'],r['min'],r['volume'])
+    df['date']=pd.to_datetime(df['date'])
+    plt_dates = dates.date2num(list(df['date']))
+    candlesticks = zip(plt_dates,df['open'],df['close'],df['high'],df['low'],df['volume']) 
+    df['date']=df['date'].map(mdates.date2num)
+    df=df[['date','open','close','high','low','volume']]    
+
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    cdl(ax,df['open'],df['high'], df['low'], df['close'], colorup='g', colordown='r', width=0.6)
+    xt = ax.get_xticks()
+    new_xticks = [datetime.date.isoformat(num2date(d)) for d in xt]
+    ax.set_xticklabels(new_xticks,rotation=45, horizontalalignment='right')
+    return
+#    ax.set_ylabel('p', size=20)
+#    candlestick(ax, candlesticks,width=1,colorup='g', colordown='r')
+    candlestick(ax, df['open'], df['close'], df['high'], df['low'], width=1)#,colorup='g', colordown='r')
+    
+    # shift y-limits of the candlestick plot so that there is space at the bottom for the volume bar chart
+    pad = 0.25
+    yl = ax.get_ylim()
+    ax.set_ylim(yl[0]-(yl[1]-yl[0])*pad,yl[1])
+    
+    # create the second axis for the volume bar-plot
+    ax2 = ax.twinx()
+   
+    # set the position of ax2 so that it is short (y2=0.32) but otherwise the same size as ax
+    ax2.set_position(matplotlib.transforms.Bbox([[0.125,0.1],[0.9,0.32]]))
+    
+    # get data from candlesticks for a bar plot
+    dates = [x[0] for x in candlesticks]
+    dates = np.asarray(dates)
+    volume = [x[5] for x in candlesticks]
+    volume = np.asarray(volume)
+    
+    # make bar plots and color differently depending on up/down for the day
+    pos = df['open']-df['close']<0
+    neg = df['open']-df['close']>0
+    
+    ax2.bar(dates[pos],volume[pos],color='green',width=1,align='center')
+    ax2.bar(dates[neg],volume[neg],color='red',width=1,align='center')
+    
+    #scale the x-axis tight
+    ax2.set_xlim(min(dates),max(dates))
+    # the y-ticks for the bar were too dense, keep only every third one
+    yticks = ax2.get_yticks()
+    ax2.set_yticks(yticks[::3])
+    
+    ax2.yaxis.set_label_position("right")
+#    ax2.set_ylabel('Volume', size=20)
+    
+    # format the x-ticks with a human-readable date. 
+    xt = ax.get_xticks()
+    new_xticks = [datetime.date.isoformat(num2date(d)) for d in xt]
+    ax.set_xticklabels(new_xticks,rotation=45, horizontalalignment='right')
+    
+    plt.ion()
+    plt.show()  
