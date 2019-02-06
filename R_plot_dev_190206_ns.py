@@ -509,7 +509,36 @@ def plot_grid(DF='', ticks=''):
     ax_hv = plt.subplot2grid((4,4),(0,0),colspan=2)
     make_ticklabels_invisible(f)
 
-
+def senti():
+    #bc
+    dte_min=20
+    p_min=10
+    pct_c_min=70
+    v_opt_min=1000
+    
+    con_dte_bc=dbc['dte']> dte_min
+    con_p_bc=dbc['price']>p_min
+    
+    dbc['prem']=dbc['last']* dbc['vol']
+    #Filter for conviction
+    dbc=dbc[con_dte & con_p]
+    con_bc=(dbc['type'].str.upper()=='CALL') & (dbc['bs']=='b')
+    con_sc=(dbc['type'].str.upper()=='CALL') & (dbc['bs']=='s')    
+    con_bp=(dbc['type'].str.upper()=='PUT') & (dbc['bs']=='b')
+    con_sp=(dbc['type'].str.upper()=='PUT') & (dbc['bs']=='s')   
+    prem_bc=dbc[con_bc].prem.sum()
+    prem_sc=dbc[con_sc].prem.sum()    
+    prem_bp=dbc[con_bp].prem.sum()
+    prem_sp=dbc[con_sp].prem.sum()       
+    pr_cp= (prem_bc+ prem_sc)/(prem_bp + prem_sp)
+    prem_bcsp=(prem_bc+ prem_sp)
+    prem_scbp=(prem_sc+ prem_bp)  
+    pr_bubr=prem_bcsp/prem_scbp
+    
+    #mc
+    con_p_mc=dmc['p']> p_min
+    con_v_opt=dmc['v_opt']> v_opt_min
+    dmc=dmc[con_p_mc & con_v_opt]
 
 
 
