@@ -2,6 +2,9 @@ eoddate backup source:
 https://pypi.org/project/eoddata-client/#history
 https://medium.com/python-data/quandl-getting-end-of-day-stock-data-with-python-8652671d6661
 http://www.csidata.com/factsheets.php?type=stock&format=html&exchangeid=AMEX
+https://product.intrinio.com/financial-data/us-stock-prices-api/pricing
+FRED:  https://research.stlouisfed.org/docs/api/fred/
+CMR: https://coherentlogic.com/middleware-development/cmr/
 
 Feb9
 1. stat_view label on y-axis
