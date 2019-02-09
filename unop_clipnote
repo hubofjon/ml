@@ -3,6 +3,10 @@ https://pypi.org/project/eoddata-client/#history
 https://medium.com/python-data/quandl-getting-end-of-day-stock-data-with-python-8652671d6661
 http://www.csidata.com/factsheets.php?type=stock&format=html&exchangeid=AMEX
 
+Feb9
+1. stat_view label on y-axis
+https://stackoverflow.com/questions/49237522/annotate-end-of-lines-using-python-and-matplotlib
+
 jan.21@hm
 1. review R-stat 
 2. data strucutre
