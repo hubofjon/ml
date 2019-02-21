@@ -1,3 +1,42 @@
+F21:
+unop_mc: convert iv to float
+unop_bc/ tbl_candies: dc['iv'].str.replace("%","").astype(float)
+$323.62 x 31.6% x SQRT (22/365) = $25.11
+
+p_range_22d: d1['mv']=d1['p']*d1['iv']/100*np.sqrt(20/252)
+
+* plot df_stat (p_22d, dt, iv, hv)  axv_horizontal line (iv, p_22d)
+ax.annotate('First maxima', 
+            xy=(p_22d, x_lim.max()), 
+            xytext=(np.pi/2., 2.3),rrowprops=dict(facecolor='black', shrink=0.05)
+
+def sec_leadlag(q_date, sec=''):
+    ds=read_sql("SELECT * FROM tbl_stat")
+    ds['date']=pd.to_datetime(ds['date']).dt.date
+    period=22
+    p_date=q_date - datetime.timedelta(period)
+    ds=ds[ds.sec==sec.upper()]
+    ds.sort_values(['date','rtn_22_pct'], inplace=True)
+    ds=ds[ds.date>=p_date]
+    lead=ds[ds.date==q_date].tail(5)
+    lead['momt']='lead'
+    lag=ds[ds.date==q_date].head(5)
+    lag['momt']='lag'
+    tag=pd.concat([lead,lag], axis=0)
+    for t in tag['ticker']:
+        ds.loc[ds.ticker==t,'rtn_5_pct_avg']=ds[ds.ticker==t]['rtn_5_pct'].mean()
+    ds_avg=ds[['ticker','rtn_5_pct_avg']]    
+    ds_avg.drop_duplicates(keep='first', inplace=True)
+    dm=tag.merge(ds_avg, on='ticker', how='left')
+    dm.loc[dm.momt=='lead', 'agree']=dm[dm.momt=='lead']['rtn_5_pct']>dm[dm.momt=='lead']['rtn_5_pct_avg']
+    dm.loc[dm.momt=='lag', 'agree']=dm[dm.momt=='lag']['rtn_5_pct']<dm[dm.momt=='lag']['rtn_5_pct_avg']
+    show=['ticker','sec','momt','rtn_22_pct','agree', 'rtn_5_pct','rtn_5_pct_avg']
+    print (dm[show])    
+        
+
+
+
+
 eoddate backup source:
 https://pypi.org/project/eoddata-client/#history
 https://medium.com/python-data/quandl-getting-end-of-day-stock-data-with-python-8652671d6661
