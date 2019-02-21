@@ -33,7 +33,35 @@ def sec_leadlag(q_date, sec=''):
     show=['ticker','sec','momt','rtn_22_pct','agree', 'rtn_5_pct','rtn_5_pct_avg']
     print (dm[show])    
         
+    
+def sec_stat():
+    ds=read_sql("SELECT * FROM tbl_stat_etf")
+    dsg=ds.groupby('ticker')
+    data=[]
+    for n, g in dsg:
+        period=22
+        g.sort_values('date', inplace=True)
+        g=g.tail(period)
+        std_22='{:.4f}'.format(g['sartn_22'].std())
+        max_22=g['rtn_22_pct'].max()
+        min_22=g['rtn_22_pct'].min()
+        begin_22=g['sartn_22'].head(1).values[0].astype(float)
+        end_22=g['sartn_22'].tail(1).values[0].astype(float)
+        avg_5='{:.1f}'.format(g['rtn_5_pct'].mean())
+ #       ratio=(float(end_22)-float(begin_22))/std_5
+        data_tmp=[n,std_22, begin_22, end_22, max_22, min_22, avg_5]
+        data.append(data_tmp)
+    data=np.asarray(data)
+    data=data.transpose()
+    cols=['ticker','std_22','begin_22','end_22', 'max_22','min_22', 'avg_5']
+    df=pd.DataFrame(dict(zip(cols, data)))
+    df['end_22']=df['end_22'].astype(float)
+    df['chg_22']=(df['end_22'].astype(float) - df['begin_22'].astype(float))
+    df['sharpe']=df['chg_22']/df['std_22'].astype(float)
 
+    df.sort_values(['sharpe', 'chg_22'], ascending=(True, False), inplace=True)
+    print(df)
+    return df
 
 
 
