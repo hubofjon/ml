@@ -1,3 +1,33 @@
+F25
+def senti_mc():
+    iv_chg_min=15
+    pct_c_min=20
+    pct_c_max=100- pct_c_min
+    dm=read_sql("SELECT * FROM tbl_mc_raw")
+    dm['iv_chg']=dm['iv_chg'].str.replace('%','')
+    dm['iv_chg']=dm['iv_chg'].astype(float)  
+    dm['p_chg']=dm['p_chg'].str.replace('%','')
+    dm['p_chg']=dm['p_chg'].astype(float)
+    
+    dmg=dm.groupby('date')
+    data=[]
+    for n,g in dmg:
+        data.append([n,g[g.pct_c>pct_c_max].shape[0]/g.shape[0], g[g.pct_c<pct_c_min].shape[0]/g.shape[0]])
+    data=np.asarray(data)
+    data=data.transpose()
+    cols=['date','pct_c','pct_p']
+    df=pd.DataFrame(dict(zip(cols,data)))
+        
+    df['pct_c']=df['pct_c'].astype(float)
+    df['pct_p']=df['pct_p'].astype(float)
+    df['pct_cp']=df['pct_c']/df['pct_p']
+    df['c-p']=df['pct_c']-df['pct_p']
+    
+    dp=read_sql("SELECT * FROM tbl_pv_etf WHERE ticker='SPY'")
+#    df.plot(x='date', y=['pct_c', 'pct_p'], kind='line', rot=90)
+    df.plot(x='date', y=['pct_c', 'pct_p'], kind='line', rot=90)
+    
+
 F21:
 unop_mc: convert iv to float
 unop_bc/ tbl_candies: dc['iv'].str.replace("%","").astype(float)
