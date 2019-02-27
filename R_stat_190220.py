@@ -4,7 +4,7 @@
 import datetime as datetime
 from P_commons import read_sql, to_sql_append, to_sql_replace
 import pandas as pd
-#from T_intel import get_RSI
+from T_intel import get_RSI
 import numpy as np
 import warnings
 warnings.filterwarnings("ignore")
@@ -18,6 +18,36 @@ ccy=['UUP','FXY','FXA']
 com=['JJC','DBC','USO','GLD']
 cred=['WYDE', 'HYG']
 
+def senti_mc():
+    iv_chg_min=15
+    pct_c_min=20
+    pct_c_max=100- pct_c_min
+    dm=read_sql("SELECT * FROM tbl_mc_raw")
+    dm['iv_chg']=dm['iv_chg'].str.replace('%','')
+    dm['iv_chg']=dm['iv_chg'].astype(float)  
+    dm['p_chg']=dm['p_chg'].str.replace('%','')
+    dm['p_chg']=dm['p_chg'].astype(float)
+    
+    dmg=dm.groupby('date')
+    data=[]
+    for n,g in dmg:
+        data.append([n,g[g.pct_c>pct_c_max].shape[0]/g.shape[0], g[g.pct_c<pct_c_min].shape[0]/g.shape[0]])
+    data=np.asarray(data)
+    data=data.transpose()
+    cols=['date','pct_c','pct_p']
+    df=pd.DataFrame(dict(zip(cols,data)))
+        
+    df['pct_c']=df['pct_c'].astype(float)
+    df['pct_p']=df['pct_p'].astype(float)
+    df['pct_cp']=df['pct_c']/df['pct_p']
+    df['c-p']=df['pct_c']-df['pct_p']
+    
+    dp=read_sql("SELECT * FROM tbl_pv_etf WHERE ticker='SPY'")
+#    df.plot(x='date', y=['pct_c', 'pct_p'], kind='line', rot=90)
+    df.plot(x='date', y=['pct_c', 'pct_p'], kind='line', rot=90)
+    
+    
+    
 def tick_leadlag(q_date, ticks=['']):
     dt=stat_VIEW(q_date, ticks)
     show=['ticker','close','abs_rtn_22', 'rtn_22_pct','beta', 'rsi',\
@@ -27,12 +57,12 @@ def tick_leadlag(q_date, ticks=['']):
     df=dt[ ~con_sec ]
     for t in df['ticker']:
         df.loc[df.ticker==t, 'sec']=input("input sector of %s:"%t)
-        print(dt[dt.ticker==t][show])
-        sec_leadlag(q_date, sec)
+#        print(dt[dt.ticker==t][show])
+        sec_leadlag(q_date, [sec])
     
 def etf_corr():
     etf=bond+eqty+vol+ccy+com+cred
-    df=read_sql("SELECT * FROM tbl_pv_etf")
+    df=read_sql("SELECT * FROM tbl_pv_all")
     df=df[df.ticker.isin(etf)]
     dp=pd.pivot_table(df, index=['date'], columns=['ticker'],values=['close'])
     dp=dp.corr()
@@ -164,7 +194,6 @@ def test():
 
 def stat_VIEW(q_date, tick='topdown'): 
 #can also run ad hoc ticker incl. etf eg. stat_run_rework(q_date,['fl','xli'])
-   
     qry_sp="SELECT * FROM tbl_stat WHERE date='%s'"%q_date
     qry_etf="SELECT * FROM tbl_stat_etf WHERE date='%s'"%q_date
     ds_etf=read_sql(qry_etf, q_date)
@@ -177,11 +206,14 @@ def stat_VIEW(q_date, tick='topdown'):
         'fm_50': 'sfm_50', 'fm_200':'sfm_200'\
         }, inplace=True)
     
-    show_etf=['sec', 'srtn_22_pct','srtn_22', 'chg_22_66', 'abs_rtn_22',\
-              'sfm_hi','sfm_lo','sfm_50','sfm_200']
-    show_sp= ['ticker','rtn_22_pct','rtn_66_pct', 'rtn_22','fm_hi', 'fm_lo',\
-              'fm_50', 'fm_200', 'close']  
+#    show_etf=['sec', 'srtn_22_pct','srtn_22', 'chg_22_66', 'abs_rtn_22',\
+#              'sfm_hi','sfm_lo','sfm_50','sfm_200']
+#    show_sp= ['ticker','rtn_22_pct','rtn_66_pct', 'rtn_22','fm_hi', 'fm_lo',\
+#              'fm_50', 'fm_200', 'close']  
 
+    show_etf=['sec', 'srtn_22_pct', 'srtn_66_pct','abs_rtn_22','srtn_22']
+    show_sp= ['ticker','rtn_22_pct','rtn_66_pct', 'rtn_22','close']      
+    show=show_sp+ show_etf
     df=ds_etf[show_etf].merge(ds_sp, on='sec') 
     df.sort_values(['srtn_22'],ascending=[False], inplace=True)
 
@@ -210,12 +242,12 @@ def stat_VIEW(q_date, tick='topdown'):
             if not df_nonsp.empty: 
                 df_nonsp=stat_run_base(q_date, 'ad_hoc', 'prod', df_nonsp)
             df=df.append(df_nonsp[show_sp])
-            return df
+            return df[show]
             exit   
     else:
         df=pd.concat([lead,lag],axis=0)
-    show_etf.extend(show_sp)
-    show=show_etf
+#    show_etf.extend(show_sp)
+#    show=show_etf
     df=df[show]
     df.sort_values(['srtn_22','rtn_22_pct'],ascending=[False, False], inplace=True)
 
@@ -224,8 +256,16 @@ def stat_VIEW(q_date, tick='topdown'):
     pd.set_option('display.expand_frame_repr', True)
     return df
     
-#from tbl_price_
-def stat_run_base(q_date, underlying="sp500", env="prod", df_ah=''):
+
+#
+def stat_run_base(q_date, underlying='sp500', env='prod',df_ah=''):
+    '''
+    In:tbl_price (since 2013), tbl_pv (since 2018 jun)
+    Update: tbl_stat, tbl_stat_etf
+    note:
+    tbl_stat_ep, etf is created for quicker access
+    ticker rtn_22_pct in 500 component, sec rtn_22_pct in 8 etfs
+    '''
     p_date=q_date-datetime.timedelta(380)
     df_st=pd.DataFrame()
     #pick up price in the range only
@@ -249,6 +289,7 @@ def stat_run_base(q_date, underlying="sp500", env="prod", df_ah=''):
     else:
         print("stat_run missing underlying")
         exit
+
     df_pivot=df.pivot_table(index='date', columns='ticker', values='close')
     df=pd.DataFrame(df_pivot.to_records())
      #sort the price from old date to latest date
@@ -285,11 +326,11 @@ def stat_run_base(q_date, underlying="sp500", env="prod", df_ah=''):
         df0['hv_66']=np.sqrt(252*log_rtn.tail(66).var())
         df0['rsi']=get_RSI(pd.Series(df.iloc[-15:,c].values),14).values[0]
         df_st=df_st.append(df0)
-
     try:
         df_st.drop(['25%', '50%', '75%','count','max','min','std','mean'], axis=1, inplace=True)
     except:
         pass
+   
     if underlying=='sp500':
         df_st=stat_beta(df_st)  #get sector
         df_st.dropna(inplace=True)
@@ -303,6 +344,13 @@ def stat_run_base(q_date, underlying="sp500", env="prod", df_ah=''):
         df_st['rtn_22']-= spy_rtn_22
         df_st['rtn_66']-= spy_rtn_66
 #    df_stat=df_st.set_index('ticker') #ticker is set to be index
+    elif underlying=='ad_hoc':
+        df_st_orig=df_st.sort_values('ticker')  #reserve original df_st
+        df_sp=read_sql("SELECT * FROM tbl_stat")
+        df_sp.drop('index',axis=1, inplace=True)
+        df_sp=df_sp[df_sp.date==df_sp.date.max()]
+        #merge df_st with df_sp to get ad_hoc ticker rank with sp components
+        df_st=pd.concat([df_sp, df_st], axis=0)
     else:
         pass
     df_st['date']=q_date     
@@ -318,6 +366,9 @@ def stat_run_base(q_date, underlying="sp500", env="prod", df_ah=''):
     df_st['p_22_sig']=df_st['close']*df_st['hv_22']
     df_st['p_66_sig']=df_st['close']*df_st['hv_66']
     
+    if underlying=='ad_hoc': 
+        #for non-sp ticker
+        df_st=df_st[df_st.ticker.isin(df_st_orig.ticker)]
     
     if env=='prod' and underlying=='sp500':
         to_sql_append(df_st, "tbl_stat")
@@ -366,3 +417,6 @@ def anytick():
     dadd.ticker=add
     ds.append(dadd)
     play_candy
+    
+def get_beta():
+    
