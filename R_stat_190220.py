@@ -419,4 +419,224 @@ def anytick():
     play_candy
     
 def get_beta():
+    df=read_sql("SELECT * FROM tbl_pv_etf")
+    secs=['XLI','XLY','XLK','XLV','XLP','XLU','XLF','XLB','XLE','SPY']
+    df=df[df.ticker.isin(secs)]
+    dfg=df.groupby('ticker')
+    x=dfg.get_group('SPY')
+    x.sort_values('date', inplace=True)
+    x['mrtn_22']=x['close']/x['close'].shift(22)
+    x.dropna(inplace=True)
+    for n, g in dfg:
+        g.sort_values('date',inplace=True)
+        g['rtn_22']=g['close']/g['close'].shift(22)
+        g.dropna(inplace=True)
+        gx=pd.merge(g,x[['date','mrtn_22']], how='left',on='date')
+        win=132
+        gx['beta'] = pd.rolling_cov(gx['rtn_22'], gx['mrtn_22'], window=win) \
+            / pd.rolling_var(gx['mrtn_22'], window=win)
+        gx.dropna(inplace=True)
+        gx.plot(x='date',y='beta',kind='line', title=n)
+
+def vwap(df):
+        q = df.quantity.values
+        p = df.price.values
+        df.assign(vwap=(p * q).cumsum() / q.cumsum())    
+        df = df.groupby(df.index.date, group_keys=False).apply(vwap)  
+        
+def dev(q_date, underlying='sp500', env='prod',df_ah=''):
+    '''
+    Run stat_run_base(etf) first then (sp)
+    In:tbl_price (since 2013), tbl_pv (since 2018 jun)
+    Update: tbl_stat, tbl_stat_etf
+    note:
+    tbl_stat_ep, etf is created for quicker access
+    ticker rtn_22_pct in 500 component, sec rtn_22_pct in 8 etfs
+    '''
+    import scipy.stats as stats
+    p_date=q_date-datetime.timedelta(380)
     
+    #pick up price in the range only
+#    if underlying=='sp500':
+#        query="SELECT * FROM '%s' wHERE date BETWEEN '%s' AND '%s'" %("tbl_price", p_date, q_date)
+#        df=read_sql(query, q_date)
+#    elif (underlying=='etf')|(underlying=='sec')|(underlying=='macro')|(underlying=='ccy'):
+#        query="SELECT * FROM '%s' wHERE date BETWEEN '%s' AND '%s'" %("tbl_price_etf", p_date, q_date)
+#        df=read_sql(query, q_date)
+    if underlying=='sp500':
+        query="SELECT * FROM '%s' wHERE date BETWEEN '%s' AND '%s'" %("tbl_pv_sp500", p_date, q_date)
+        df=read_sql(query, q_date)
+    elif (underlying=='etf'):
+        query="SELECT * FROM '%s' wHERE date BETWEEN '%s' AND '%s'" %("tbl_pv_etf", p_date, q_date)
+        df=read_sql(query, q_date)        
+    elif (underlying=='ad_hoc') and  (~ df_ah.empty):
+        qry="SELECT * FROM '%s' wHERE date BETWEEN '%s' AND '%s'" %("tbl_pv_all", p_date, q_date)
+        df=read_sql(qry, q_date)
+        df=df[df.ticker.isin(df_ah.ticker)]
+    else:
+        print("stat_run missing underlying")
+        exit
+    ds=pd.DataFrame()
+    dfg=df.groupby('ticker')
+#daily, calc stat for past 1 year from q_date as the stat of q_date
+    for n,g in dfg:  #new item: std_22, std_66, spike, p_value, fm_20
+        g.sort_values('date',inplace=True)
+        g['close_22b']=g['close'].shift(22)
+        g['close_66b']=g['close'].shift(66)
+        g['mean_20']=g['close'].tail(20).mean()
+        g['mean_50']=g['close'].tail(50).mean()
+        g['mean_200']=g['close'].tail(200).mean()
+        g['hi_252']=g['close'].tail(252).max()
+        g['lo_252']=g['close'].tail(252).min()
+        g['rtn_5']=g['close']/g['close'].shift(5)-1
+        g['rtn_22']=g['close']/g['close'].shift(22)-1
+        g['rtn_66']=g['close']/g['close'].shift(66)-1
+        g['std_22']=(np.log(1+g['close'].pct_change())).rolling(22).std()
+        g['hv_22']=g['std_22']*(252**0.5)
+        g['std_66']=(np.log(1+g['close'].pct_change())).rolling(66).std()
+        g['hv_66']=g['std_66']*(252**0.5)
+#        g['rsi']=get_RSI()
+        g['spike']=(g['close']-g['close'].shift(1))/(g['std_22'].shift(1)*g['close'].shift(1))
+        g['p_value']=stats.shapiro(np.log(1+g['close'].pct_change()))[1]
+#       g['beta']=get_BETA()
+        g['fm_20']=g['close']/g['mean_20']-1
+        g['fm_50']=g['close']/g['mean_50']-1
+        g['fm_200']=g['close']/g['mean_200']-1
+        g['fm_hi']=g['close']/g['hi_252']-1
+        g['fm_lo']=g['close']/g['lo_252']-1
+        g['p_22_sig']=g['close']*g['hv_22']*np.sqrt(22/252)
+        g['p_66_sig']=g['close']*g['hv_66']*np.sqrt(66/252)
+#        g['vwap']
+#get the last row as stat as of q_date
+        ds_qdate=g.tail(1)
+        ds=pd.concat([ds, ds_qdate], axis=0)
+        
+    if underlying=='sp500':
+        ds=stat_beta(ds)  #get sector
+        ds.dropna(inplace=True)
+    elif underlying=='etf':
+    #rename columns, rtn_22 -> relative rtn to SPY
+        secs=['XLI','XLY','XLK','XLV','XLP','XLU','XLF','XLB','XLE','SPY']  #defined in consituents list
+        ds=ds.loc[ds['ticker'].isin(secs)]
+        ds['sartn_22']=ds['rtn_22']
+        ds['chg_22_66']=ds['rtn_22']-ds['rtn_66']
+        spy_rtn_22=ds[ds.ticker=='SPY']['rtn_22'].values[0]
+        spy_rtn_66=ds[ds.ticker=='SPY']['rtn_66'].values[0]
+        ds['rtn_22']-= spy_rtn_22
+        ds['rtn_66']-= spy_rtn_66
+#    dsat=ds.set_index('ticker') #ticker is set to be index
+    elif underlying=='ad_hoc':
+        #only non_sp ticker go this route
+        ds_orig=ds.sort_values('ticker')  #reserve original ds
+        df_sp=read_sql("SELECT * FROM tbl_stat")
+        df_sp.drop('index',axis=1, inplace=True)
+        df_sp=df_sp[df_sp.date==df_sp.date.max()]
+        #merge ds with df_sp to get ad_hoc ticker rank with sp components
+        ds=pd.concat([df_sp, ds], axis=0)
+    else:
+        pass
+# rank rtn_pct among sp components as of q_date    
+    ds['rtn_5_pct']=ds['rtn_5'].rank(pct=True)*10
+    ds['rtn_22_pct']=ds['rtn_22'].rank(pct=True)*10
+    ds['rtn_66_pct']=ds['rtn_66'].rank(pct=True)*10
+
+    if underlying=='ad_hoc': 
+        #for non-sp ticker
+        ds=ds[ds.ticker.isin(ds_orig.ticker)]
+    
+    if env=='prod' and underlying=='sp500':
+        to_sql_append(ds, "tbl_stat")
+    elif env=='prod' and underlying=='etf':
+        to_sql_append(ds, "tbl_stat_etf")    
+    return ds
+#        
+        
+#    df_pivot=df.pivot_table(index='date', columns='ticker', values='close')
+#    df=pd.DataFrame(df_pivot.to_records())
+#     #sort the price from old date to latest date
+#
+#    df.set_index('date', inplace=True) 
+#    df.sort_index(axis=0, ascending=True, inplace=True)
+#    if df.isnull().values.any():
+#        df.fillna(method='ffill',inplace=True)
+#    df0=pd.DataFrame()
+#    len=df.shape[1]  
+#    #iterate thru columns, each column is a ticker
+#    #if iterate thru rows then use below code
+## for index, row in df.iterrows():
+##   ....:     print row['c1'], row['c2']   
+#    #for columns in df (another way)
+##close_qdate, mean_20,50,200, hi_252,lo_252, 
+#    for c in range (0,len):
+#        df0=df.iloc[:,c].describe()
+#        #df0['ticker']=df.iloc[0:,c].name
+#        df0['ticker']=df.columns[c]
+#        df0['close']=df.iloc[-1,c]  #last row is latest price
+#        df0['close_22b']=df.iloc[-22,c]
+#        df0['close_66b']=df.iloc[-66,c]
+#        df0['mean_20']=df.iloc[:,c].tail(20).mean()
+#        df0['mean_50']=df.iloc[:,c].tail(50).mean()
+#        df0['mean_200']=df.iloc[:,c].tail(200).mean()
+#        df0['hi_252']=df.iloc[:,c].tail(252).max()  
+#        df0['lo_252']=df.iloc[:,c].tail(252).min()  
+#        df0['rtn_5']=df.iloc[-1,c]/df.iloc[-5,c]-1 
+#        df0['rtn_22']=df.iloc[-1,c]/df.iloc[-22,c]-1 
+#        df0['rtn_66']=df.iloc[-1,c]/df.iloc[-66,c]-1 
+#        log_rtn=np.log(df.iloc[:,c]/df.iloc[:,c].shift(1))
+#        df0['hv_22']=np.sqrt(252*log_rtn.tail(22).var())
+#        df0['hv_66']=np.sqrt(252*log_rtn.tail(66).var())
+#        df0['rsi']=get_RSI(pd.Series(df.iloc[-15:,c].values),14).values[0]
+#        df_st=df_st.append(df0)
+#    try:
+#        df_st.drop(['25%', '50%', '75%','count','max','min','std','mean'], axis=1, inplace=True)
+#    except:
+#        pass
+#   
+#    if underlying=='sp500':
+#        df_st=stat_beta(df_st)  #get sector
+#        df_st.dropna(inplace=True)
+#    elif underlying=='etf':
+#        secs=['XLI','XLY','XLK','XLV','XLP','XLU','XLF','XLB','XLE','SPY']  #defined in consituents list
+#        df_st=df_st.loc[df_st['ticker'].isin(secs)]
+#        df_st['sartn_22']=df_st['rtn_22']
+#        df_st['chg_22_66']=df_st['rtn_22']-df_st['rtn_66']
+#        spy_rtn_22=df_st[df_st.ticker=='SPY']['rtn_22'].values[0]
+#        spy_rtn_66=df_st[df_st.ticker=='SPY']['rtn_66'].values[0]
+#        df_st['rtn_22']-= spy_rtn_22
+#        df_st['rtn_66']-= spy_rtn_66
+##    df_stat=df_st.set_index('ticker') #ticker is set to be index
+#    elif underlying=='ad_hoc':
+#        df_st_orig=df_st.sort_values('ticker')  #reserve original df_st
+#        df_sp=read_sql("SELECT * FROM tbl_stat")
+#        df_sp.drop('index',axis=1, inplace=True)
+#        df_sp=df_sp[df_sp.date==df_sp.date.max()]
+#        #merge df_st with df_sp to get ad_hoc ticker rank with sp components
+#        df_st=pd.concat([df_sp, df_st], axis=0)
+#    else:
+#        pass
+#    df_st['date']=q_date     
+#    df_st['fm_mean20']=(df_st['close']/ df_st['mean_20'])-1
+#    df_st['fm_50']=df_st['close']/ df_st['mean_50']-1     
+#    df_st['fm_200']=df_st['close']/ df_st['mean_200']-1
+#    df_st['fm_hi']=df_st['close']/ df_st['hi_252']-1
+#    df_st['fm_lo']=df_st['close']/ df_st['lo_252']-1
+#    
+#    df_st['rtn_5_pct']=df_st['rtn_5'].rank(pct=True)*10
+#    df_st['rtn_22_pct']=df_st['rtn_22'].rank(pct=True)*10
+#    df_st['rtn_66_pct']=df_st['rtn_66'].rank(pct=True)*10
+#    df_st['p_22_sig']=df_st['close']*df_st['hv_22']
+#    df_st['p_66_sig']=df_st['close']*df_st['hv_66']
+#    
+#    if underlying=='ad_hoc': 
+#        #for non-sp ticker
+#        df_st=df_st[df_st.ticker.isin(df_st_orig.ticker)]
+#    
+#    if env=='prod' and underlying=='sp500':
+#        to_sql_append(df_st, "tbl_stat")
+#    elif env=='prod' and underlying=='etf':
+#        to_sql_append(df_st, "tbl_stat_etf")    
+#    elif env=='test' and underlying=='sp500':
+#        to_sql_append(df_st, "tbl_stat_test")
+#    elif env=='test' and underlying=='etf':
+#        to_sql_append(df_st, "tbl_stat_etf_test")
+#    return df_st
