@@ -7,6 +7,7 @@ import pandas as pd
 from T_intel import get_RSI
 import numpy as np
 import warnings
+import scipy.stats as stats
 warnings.filterwarnings("ignore")
 pd.option_context('display.float_format', '${:,.1f}'.format)
 
@@ -298,16 +299,19 @@ def stat_run_base(q_date, underlying='sp500', env='prod',df_ah=''):
     df.sort_index(axis=0, ascending=True, inplace=True)
     if df.isnull().values.any():
         df.fillna(method='ffill',inplace=True)
+        
     df0=pd.DataFrame()
     len=df.shape[1]  
-    #iterate thru columns, each column is a ticker
+    #iterate thru columns, each column is a ticker, indexis date
     #if iterate thru rows then use below code
 # for index, row in df.iterrows():
 #   ....:     print row['c1'], row['c2']   
     #for columns in df (another way)
-#close_qdate, mean_20,50,200, hi_252,lo_252, 
+#m190304: new item: std_22, std_66, spike, 
+# dataframe.iloc[-1,]: refer to last row, 
     for c in range (0,len):
-        df0=df.iloc[:,c].describe()
+        df0=df.iloc[:,c].describe()  #transform into a series, value is 'close'
+        
         #df0['ticker']=df.iloc[0:,c].name
         df0['ticker']=df.columns[c]
         df0['close']=df.iloc[-1,c]  #last row is latest price
@@ -321,16 +325,28 @@ def stat_run_base(q_date, underlying='sp500', env='prod',df_ah=''):
         df0['rtn_5']=df.iloc[-1,c]/df.iloc[-5,c]-1 
         df0['rtn_22']=df.iloc[-1,c]/df.iloc[-22,c]-1 
         df0['rtn_66']=df.iloc[-1,c]/df.iloc[-66,c]-1 
-        log_rtn=np.log(df.iloc[:,c]/df.iloc[:,c].shift(1))
-        df0['hv_22']=np.sqrt(252*log_rtn.tail(22).var())
-        df0['hv_66']=np.sqrt(252*log_rtn.tail(66).var())
+#        log_rtn=np.log(df.iloc[:,c]/df.iloc[:,c].shift(1))
+#        df0['hv_22']=np.sqrt(252*log_rtn.tail(22).var())
+#        df0['hv_66']=np.sqrt(252*log_rtn.tail(66).var())
         df0['rsi']=get_RSI(pd.Series(df.iloc[-15:,c].values),14).values[0]
+
+        df0['std_22']=(np.log(1+df.iloc[:,c].pct_change())).tail(22).std()
+        df0['std_66']=(np.log(1+df.iloc[:,c].pct_change())).tail(66).std()
+        df0['hv_22']=df0['std_22']*(252**0.5)  
+        df0['hv_66']=df0['std_66']*(252**0.5) 
+        df0['std_22_lastd']=(np.log(1+df.iloc[:-1,c].pct_change())).tail(22).std()
+        df0['p_d']=df0['std_22_lastd']* df.iloc[-2,c] 
+        df0['spike']=(df.iloc[-1,c] -df.iloc[-2,c])/df0['p_d']
+        log_rtn=np.log(1+df.iloc[:,c].pct_change())
+        log_rtn.dropna(inplace=True)
+        df0['p_value']=stats.shapiro(log_rtn)[1]
         df_st=df_st.append(df0)
+
     try:
-        df_st.drop(['25%', '50%', '75%','count','max','min','std','mean'], axis=1, inplace=True)
+        df_st.drop(['25%', '50%', '75%','count','max','min','std','mean',\
+                'std_22_lastd', 'p_d'], axis=1, inplace=True)
     except:
         pass
-   
     if underlying=='sp500':
         df_st=stat_beta(df_st)  #get sector
         df_st.dropna(inplace=True)
@@ -510,7 +526,6 @@ def dev(q_date, underlying='sp500', env='prod',df_ah=''):
 #get the last row as stat as of q_date
         ds_qdate=g.tail(1)
         ds=pd.concat([ds, ds_qdate], axis=0)
-        
     if underlying=='sp500':
         ds=stat_beta(ds)  #get sector
         ds.dropna(inplace=True)
