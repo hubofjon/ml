@@ -6,12 +6,14 @@ import datetime as datetime
 import sqlite3 as db
 from timeit import default_timer as timer
 from R_plot import plot_base
+from dateutil import parser
 
 from termcolor import colored, cprint
 import warnings
 warnings.filterwarnings("ignore")
 pd.options.display.float_format = '{:.2f}'.format
-from P_commons import to_sql_append, to_sql_replace, read_sql
+from P_commons import to_sql_append, to_sql_replace, read_sql, type_convert
+from P_commons import *
 from R_stat_dev import stat_VIEW, stat_run_base
 
 from T_intel import get_earning_ec, get_DIV, get_si_sqz, get_rsi, get_RSI
@@ -22,6 +24,7 @@ from T_intel import get_earning_ec, get_DIV, get_si_sqz, get_rsi, get_RSI
 4. daily: track_derived
 5. daily: track_alert
 6. daily: track_dash
+pd.to_datetime(dfx, format='%d-%m-%Y', errors='coerce')
 '''
 todate=datetime.date.today()
 def main_TRACK(q_date):
@@ -104,7 +107,7 @@ def trade_candy(q_date, trade_list=['']):
  
     col_extra=['act', 'bedn', 'beup', 'comm', 'delta', 'entry_dt', \
         'exit_dt', 'exp_dt', 'ic1', 'ic2', 'ip1', 'ip2',\
-        'last_p', 'mp', 'oc1', 'oc2', 'op1', 'op2',\
+        'close', 'mp', 'oc1', 'oc2', 'op1', 'op2',\
         'pc', 'play', 'strike', 'term', 'tgt_dt', 'tgt_p', 'vega']
     
     df_extra=pd.DataFrame(columns=col_extra, index=df.index)
@@ -112,8 +115,10 @@ def trade_candy(q_date, trade_list=['']):
     scm_t_trdcdy=dc.columns.tolist()
     
 #pre_fill values
+    
     dc['exit_dt']='N'
     dc['act']='IBQ'    
+    dc['entry_date']=q_date
     to_sql_replace(dc,"tbl_trade_candy")
     print(" tbl_trade_candy is replaced" )    
 
@@ -126,14 +131,25 @@ def trade_candy(q_date, trade_list=['']):
 def trade_entry(q_date):
 #    df_trade=pd.read_excel(open(r'c:\pycode\playlist\candy.xlsx','rb'))
 #    df_trade=pd.read_csv(open(r'c:\pycode\playlist\candy.csv'))
+    df=read_sql("SELECT * FROM tbl_trade_candy", q_date)
+    dr=read_sql("SELECT * FROM tbl_rsik")
+# data validation
+    df['lsnv']=df['lsnv'].astype('str').str.upper()
+    df['play']=df['play'].astype('str').str.upper()
+    df['pc']=df['pc'].astype('str').str.upper()
+    con_lsnv= df['lsnv'].isin(['L','S','N','V']).all()
+    con_play= df['play'].isin(dr.play.tolist()).all()
+    if  not ( con_lsnv & con_play):
+        print("trade_entry: lsnv or play not in list")
+        return    
     ask=input(" --- trade_entry?  yes/n:    ")  
     if ask=='yes':
-        df=read_sql("SELECT * FROM tbl_trade_candy", q_date)
+        
 #        if  'index' in (df.columns):
 #            df.drop('index', axis=1, inplace=True)
         scm_t_c=read_sql("select * from tbl_c").columns.tolist()
         scm_t_c=[x for x in scm_t_c if x not in \
-            ['index','level_0','cap','i_rsi','i_mc','event']]
+            ['index','level_0','cap','i_rsi','i_mc']]
         df=df[scm_t_c]
         to_sql_append(df, 'tbl_c')  #log trades and track performance
         print ("trade is appended in tbl_c")
@@ -160,7 +176,20 @@ def spec_track(q_date):
     print("spec_track  %s  days plot "%days_trace)
     plot_base(q_date, df.ticker.unique(),df)
     return df
-    
+
+def t_convert(df, cols, type='float'):
+    if type=='float':
+        for x in cols:
+            df[x]=df[x].astype(type)
+            return df
+    elif type=='datetime':
+        dummy_dt='2000-1-1'
+        for x in cols:
+            df[x]=df[x].replace('',dummy_dt).astype(str)
+            df[x]=df[x].replace('None', dummy_dt).astype(str)
+            df[x]=df[x].apply(lambda i: parser.parse(i))
+        return df 
+
 def track_raw(q_date): 
     '''
     1. update flask with exit, mp
@@ -181,19 +210,16 @@ def track_raw(q_date):
         '''
     dt_all=read_sql("SELECT * FROM tbl_c", q_date)
  #Validate act, cap   
-    accounts=['IBQ','IBE','IBT','IBR','IQE','SH']
     dt_all['act']=dt_all['act'].str.upper()
     dt_all.drop('cap', axis=1, inplace=True)
-    if not dt_all.act.isin(accounts).all():
-        print("track_raw: tbl_c act not recognized")
-        return
 #update cap data
-    df_cap=read_sql("SELECT * FROM tbl_cap", q_date)
+    df_cap=read_sql("SELECT * FROM tbl_act", q_date)
     dt_all=dt_all.merge(df_cap[['act','cap']], on='act',how='left')
-    if set(['level_0']).issubset(dt_all.columns):    
-        dt_all=dt_all.drop(['level_0'],axis=1)
-    dt_hist=dt_all[dt_all.exit_dt != 'N']
-    to_sql_append(dt_hist, 'tbl_c_hist') 
+#    if set(['level_0']).issubset(dt_all.columns):    
+#        dt_all=dt_all.drop(['level_0'],axis=1)
+#    dt_hist=dt_all[dt_all.exit_dt != 'N']
+#    to_sql_append(dt_hist, 'tbl_c_hist') 
+    '''    
 # REPLACE live trade to tbl_trd   
     dt=dt_all[dt_all.exit_dt=='N']
     dt=dt.fillna(0)
@@ -205,62 +231,16 @@ def track_raw(q_date):
         return
     if not dt_hist.empty:  #only update tbl_c when needed
         to_sql_replace(dt, "tbl_c")  
-#   UPDATE to current live, non-live trade
-# UPDATE RAW from stat_view, len(dt)=len(ds) !!!       
+    '''
+
+# updte with latest stat_VIEW
     ds=stat_VIEW(q_date, dt_all['ticker'].tolist())
-    ds.sort_values(['ticker'], ascending=True)
-    dt.sort_values(['ticker'], ascending=True)
-    con=ds['ticker'].isin(dt['ticker'])  #obtain index in ds
-    dt['date']=q_date
-    dt['i_rtn_22_pct']=dt['i_rtn_22_pct'].replace('',0).astype(float)
-    dt['i_srtn_22_pct']=dt['i_srtn_22_pct'].replace('',0).astype(float)
-
-    dt['ic2']=dt['ic2'].replace('',0).astype(float)
-    dt['ip2']=dt['ip2'].replace('',0).astype(float)
-    dt['oc1']=dt['oc1'].replace('',0).astype(float)
-    dt['op1']=dt['op1'].replace('',0).astype(float)
-    dt['oc2']=dt['oc2'].replace('',0).astype(float)
-    dt['op2']=dt['op2'].replace('',0).astype(float)
-    dt['mp']=dt['mp'].replace('',0).astype(float)
-    dt['comm']=dt['comm'].replace('',0).astype(float)
-    dt['tgt_p']=dt['tgt_p'].replace('',0).astype(float)    
-    for x in ['fm_50','fm_200','fm_hi','fm_lo']:
-        dt[x]=dt[x].astype(float)
-    def rgx(val):
-        import re
-        evt=re.search('(\d{1,2}-\S{3}-\d{4})',val)
-        if evt:
-            return evt.group(0)
-        else:
-            return np.nan        
-    dt['event_dt']=dt['event'].apply(rgx)    
-    dt['event_dt']=pd.to_datetime(dt['event_dt'])
-#    loc_t=pd.isnull(dt.close)  #ticker not in sp or etf
-#    loc_s=ds['ticker'].isin(dt.loc[loc_t,'ticker']) 
-
-#Fields update daily from stat_VIEW
-    dt.drop(['fm_50', 'fm_200', 'fm_hi','fm_lo','last_p'], axis=1, inplace=True)  #avoid dupe fields with ds
-    show_raw=['ticker','close','fm_hi','fm_lo','fm_50', 'fm_200',\
-    'srtn_22_pct', 'rtn_22_pct']
-#         'mc','bc']
-    dt=dt.merge(ds[show_raw], on='ticker', how='left')
-    dt.rename(columns={'close':'last_p'}, inplace=True)
+    col_share=list(set(dt_all.columns).intersection(set(ds.columns)))
+    col_drop=[x for x in col_share if x not in ['ticker']]
+    dt_all.drop(col_drop, axis=1, inplace=True)
+    dt=pd.merge(dt_all, ds, on='ticker')
     
-#    for index, row in dt.iterrows():
-#        opt=get_option_simple(row.ticker)
-#        dt.loc[index, 'iv_30']=opt['iv_30'].values[0]
-#        dt.loc[index,'iv_30_rank']=float(opt['iv_30_rank'].values[0][:-1])
-#        dt.loc[index,'v_opt_pct']=opt['v_opt_pct'].values[0]    
-        
-#    dt['iv_rank_chg']=dt['iv_30_rank']-dt['iv_30_rank_prev']
-#    dt['std']=dt['close_qdate_prev']* dt['iv_30']*0.01*np.sqrt(30/365)
-#    dt['spike']=(dt['close_qdate'] - dt['close_qdate_prev'])/dt['std']
-#    dt.replace(np.NaN,0, inplace=True)
-#    dt['rsi_chg']=dt['rsi'].astype(float) - dt['i_rsi'].astype(float)
-    dt['ts_chg'] = dt['rtn_22_pct'].astype(float) - dt['i_rtn_22_pct'].astype(float)
-    dt['sm_chg'] = dt['srtn_22_pct'].astype(float) - dt['i_srtn_22_pct'].astype(float) 
-
-# UPDATE from external, mc, bc
+# in mc_raw or bc_raw?
     df_mc=read_sql("SELECT * FROM tbl_mc_raw ", q_date)
     df_mc['date']=pd.to_datetime(df_mc['date'])
     df_mc=df_mc[df_mc.date==q_date]
@@ -271,21 +251,61 @@ def track_raw(q_date):
     else:
         dt['mc']=''
     dt['bc']=''
+#Clean/convert data
+#1. from flask 
+    dt['date']=q_date
+    dt['date']=pd.to_datetime(dt['date'])
+    dummy_dt='2000-1-1'
+    flask_val=['ic1','ip1','ic2','ip2','oc1','op1','oc2','op2',\
+        'mp','comm','tgt_p','delta','vega','beup','bedn','strike']
+    flask_dt=['entry_dt', 'exp_dt','tgt_dt','earn_dt', 'event_dt', 'div_dt']
+          
+    for x in flask_val:
+        dt[x]=dt[x].replace('',0).astype(float)
+
+    for x in flask_dt:
+        for ch in ['','None','N','N/A','0']:
+            dt[x]=dt[x].replace(ch,dummy_dt).astype(str)
+ #       dt[x]=[parser.parse(i) for i in dt[x]]
+        dt[x]=dt[x].apply(lambda i: parser.parse(i))
+
+#existing missing dt     
+    dt['si']=dt['si'].str.replace('%','')
+    dt['si']=dt['si'].replace('',0).astype(float)
+    dt_string=['beta','i_iv','i_rsi','i_rtn_22_pct','i_srtn_22_pct'] 
+    for x in [dt_string]:
+        dt[x]=dt[x].replace('',0).astype(float)
+    
+    dt_val=['beta', 'cap', 'entry_p', 'fm_200', 'fm_50', 'fm_hi', 'fm_lo', \
+        'hv_22', 'i_hv_22', 'i_iv', 'i_rsi', 'i_rtn_22_pct', 'i_srtn_22_pct', \
+        'close', 'rtn_22', 'rtn_22_pct', 'rtn_5_pct',\
+       'rtn_66_pct', 'sfm_200', 'sfm_50', 'si', 'spike', 'srtn_22',\
+       'srtn_22_pct', 'srtn_66_pct', 'strike', 'vega']
+    dt=type_convert(dt, dt_val, 'float')
+    
+# rgx() should be in unop_mc()
+#    def rgx(val):
+#        import re
+#        evt=re.search('(\d{1,2}-\S{3}-\d{4})',val)
+#        if evt:
+#            return evt.group(0)
+#        else:
+#            return np.nan        
+#    dt['event_dt']=dt['event'].apply(rgx)    
     
 # UPDATE derived: ic, ip, oc, op, lc, lp, mp, risk_orig, risk_live, pl_r, pl_ur, pl_pct, 
-    dt.replace("",0, inplace=True)
     dt['ic']= dt['ic1']+dt['ic2']
     dt['ip']=(dt['ic1']*dt['ip1']+dt['ic2']*dt['ip2'])/dt['ic']    
     dt['oc']= dt['oc1']+dt['oc2']
-    dt['op']=(dt['oc1']*dt['op1']+dt['oc2']*dt['op2'])/dt['oc']  
+    #op1, op2 default to be 0
+    con_oc=dt['oc']>0
+    dt.loc[con_oc, 'op']=(dt['oc1']*dt['op1']+dt['oc2']*dt['op2'])/dt['oc']  
     dt['lc']=dt['ic']- dt['oc']
-    
-    con_null_op=pd.isnull(dt['op']) #if not sold then lp=0 default
-    dt.loc[con_null_op, 'op']=0 #dt.loc[con_null_op, 'ip']
-    dt['lp']= (dt['ic']*dt['ip']-dt['oc']*dt['op'])/dt['lc']
-# if mp is NOT updated by tbl_trd@Flask
-    dt[pd.isnull(dt.mp)]['mp']=dt['lp']  
-
+    #for live trade only
+    con_lc=dt['lc']>0
+    dt.loc[con_lc, 'lp']= (dt['ic']*dt['ip']-dt['oc']*dt['op'])/dt['lc']
+# mp default to be 0 if blank @flask
+#    dt[pd.isnull(dt.mp)]['mp']=dt['lp']  
     dt['risk_orig']=dt['ic']*dt['ip']*100+dt['comm']
     dt['risk_live']=dt['lc']*dt['mp']*100
     dt['pl_r']=(dt['op']-dt['ip'])*dt['oc']*100
@@ -293,130 +313,147 @@ def track_raw(q_date):
     dt['pl']=dt['pl_r'] + dt['pl_ur']- dt['comm']
     dt['pl_pct']=(dt['pl']/dt['risk_orig'])
     
-    dt['days_to_exp']=pd.to_datetime(dt['exp_dt']).subtract(pd.to_datetime(dt['date'])).dt.days   
-    dt['days_all']= pd.to_datetime(dt['exp_dt']).subtract(pd.to_datetime(dt['entry_dt'])).dt.days   
+# move non-live ticker to tbl_c_hist
+#    con_dead=dt['exit_dt']=='N'
+#    dt_dead=dt[con_dead]
+#    dt_live=dt[~ con_dead]
+#    to_sql_delete("delet from tbl_c where exit_dt <>'N'")
+    dt['days_to_exp']=dt['exp_dt'].subtract(dt['date']).dt.days   
+    dt['days_all']= dt['exp_dt'].subtract(dt['entry_dt']).dt.days   
     dt['days_pct']=(1-dt['days_to_exp']/dt['days_all']).round(2)
-    try:
-        dt['days_to_div']=pd.to_datetime(dt['div_dt']).subtract(pd.to_datetime(dt['date'])).dt.days
-    except:
-        dt['days_to_div']=1000
-    dt['earn_dt']= dt['earn_dt'].values[0].split()[0]
-    dt['days_to_earn']=pd.to_datetime(dt['earn_dt']).subtract(pd.to_datetime(dt['date'])).dt.days
-    con_notnull_event=pd.notnull(dt['event_dt'])
+    dt['days_to_div']=dt['div_dt'].subtract(dt['date']).dt.days
+    dt['days_to_earn']=dt['earn_dt'].subtract(dt['date']).dt.days
+    dt['days_to_event']=dt['event_dt'].subtract(dt['date']).dt.days
     
-    dt.loc[con_notnull_event, 'days_to_event']=\
-          (dt.loc[con_notnull_event, 'event_dt'].subtract\
-           (pd.to_datetime(dt.loc[con_notnull_event, 'date']))).dt.days
-
-    dt['fm_strike']=(dt['last_p']/dt['strike']-1).round(2)
-    dt['srtn_chg']=dt['srtn_22_pct']<dt['i_srtn_22_pct']
-    dt['rtn_chg']=dt['rtn_22_pct']>dt['i_rtn_22_pct']
+#ALERT data prepare
+#    dt['fm_strike']=(dt['close']/dt['strike']-1).round(2)
+    dt['srtn_22_chg']=dt['srtn_22_pct']-dt['i_srtn_22_pct']
+    dt['rtn_22_chg']=dt['rtn_22_pct']-dt['i_rtn_22_pct']
+    dt['hv_22_chg']=dt['hv_22']-dt['i_hv_22']
 #    dt['rsi_chg']=dt['rsi']<dt['i_rsi']
-    try:
-        dt['tgt_dt']=pd.to_datetime(dt['tgt_dt'])
-    except:
-        print("track_raw: tgt_dt not datetime")
-        dt['tgt_dt']=datetime.datetime(2019,1,1).date()
     dt['weigh']=dt['risk_live']/dt['cap']
+    dt['days_etd']=dt['days_all']-dt['days_to_exp']
+    
+    dt['sig_etd']=dt['entry_p']*dt['i_iv']/100*np.sqrt(dt['days_etd']/252)
+    dt['spike_etd']=(dt['close']-dt['entry_p']/dt['sig_etd'])
+    dt['sig_etd2']=dt['entry_p']*dt['i_hv_22']/100*np.sqrt(dt['days_etd']/252)
+    dt['spike_etd2']=(dt['close']-dt['entry_p']/dt['sig_etd2'])    
+    dt['spike_etd']=dt[['spike_etd','spike_etd2']].max(axis=1)
+
 #Track @ Act & asset level
     z1=dt.groupby('act')['risk_live'].sum()    
     z2=dt.groupby('act')['weigh'].sum()
     z3=dt.groupby('act')['pl'].sum()
-    
     z=list(zip(z1, z2, z3))
     dt_overview=pd.DataFrame(z,columns=['risk_live','weigh', 'pl'], index=z1.index)
-    print (" ---- Track Overview ---- ")
-    print (" # of tickers: %s"%dt.shape[0])
-    print(dt_overview)
+    print (" - --Overview ---- \n # of tickers: %s \n"%dt.shape[0], dt_overview)   
+    '''
+    ALERT
+    ? stop: R
+    ? exit: Rx
+    ? out: tgt_dt min(1/2, cat_dt)
+    ? event_dt
+    ? unop: mc/bc, spike, hv_22_chg, 
+    ? momt: rtn_22_chg, srtn_22_chg, key_level
+    ? sizing: weigh
+    ? itm/be: 
+    '''
 ## UPDATE Alert - variables, 
-    stop_loss_pct= -0.5
-    p_runaway_pct= 0.1
-    v_stk_vol_pct=2.5
+    dr=read_sql("select * from tbl_risk")
+    R=0.025
+    Rx=1.2
+#   dt['r']=dt['cap']*r
+    stop_pct= -0.3
+    exit_pct=0.3
+#    p_runaway_pct= 0.1
+#    v_stk_vol_pct=2.5
     key_level_pct=0.01    
-    exit_days_pct=0.7
+    exit_days_pct=0.5
     exit_days_to_exp=5
-    exit_pl_pct=0.3  #net of comm
+      #net of comm
     event_days=5
     weigh_per_ticker=0.2
-    buff=0.15
-    fm_strike_pct=0.03
-    dt['buff']=0
+    itm_pct=0.02
+    spike_std=2
+    hv_chg_pct=0.2
     
-    lsnv=['L','S','N','V']
-    pc=['P','C','PC']
-    spreads=['V','CAL','BF','IC','BW','SYN']
-#add field "play", "pc" to tbl_c and flask?  
-#Key: stop_loss, exit_tgt_p, out_tgt_dt, event_dt, itm;  
-    CON_stop=((dt['mp']/dt['lp']-1)<= stop_loss_pct)
- #tgt_dt is the KEY control over SPEC risks
-    CON_out=dt['tgt_dt']<q_date 
-#    CON_prof=dt['mp']>dt['tgt_p']
-    CON_prof=dt['pl_pct']> exit_pl_pct
+    CON_stop= (dt['pl_pct']<= stop_pct) |(dt['pl']< -dt['cap']*R)
+    CON_out=(dt['tgt_dt']<q_date) | (dt['days_pct']>=exit_days_pct)
+    CON_exit=dt['pl_pct']> exit_pct
     
-    con_l=dt['lsnv'].astype('str').str.upper()=='L'
-    con_s=dt['lsnv'].astype('str').str.upper()=='S'
-    con_n=dt['lsnv'].astype('str').str.upper()=='N'
-    con_v=dt['lsnv'].astype('str').str.upper()=='V'
+# alert_itm:    
+    con_l=dt['lsnv']=='L'
+    con_s=dt['lsnv']=='S'
+    con_n=dt['lsnv']=='N'
+    con_v=dt['lsnv']=='V'
+    con_fm_strike_up=(dt['close']/dt['strike']-1)>=itm_pct
+    con_fm_strike_dn=(dt['close']/dt['strike']-1)<=(0 - itm_pct)
     
-    con_fm_strike_up=(dt['last_p']/dt['strike']-1)>=fm_strike_pct
-    con_fm_strike_dn=(dt['last_p']/dt['strike']-1)<=(0 - fm_strike_pct)
-# alert_itm:     
-    con_sc_up=con_s & (dt['pc'].astype('str').str.upper()=='C') & (pd.isnull(dt['play'])) & con_fm_strike_up
-    con_sp_dn=con_s & (dt['pc'].astype('str').str.upper()=='P') & (pd.isnull(dt['play'])) & con_fm_strike_dn
-    con_c_spread_up= (dt['pc'].astype('str').str.upper()=='C') & (dt.play.isin(spreads)) & con_fm_strike_up
-    con_p_spread_dn= (dt['pc'].astype('str').str.upper()=='P') & (dt.play.isin(spreads)) & con_fm_strike_dn  
-    CON_itm=con_sc_up | con_sp_dn | con_c_spread_up |con_p_spread_dn                    
+    con_sc_up=(dt['play'].isin(['SC','SCV','SCP','BW'])) & con_fm_strike_up
+    con_sp_dn=(dt['play'].isin(['SP','SPV','SCP','SYN'])) & con_fm_strike_dn
+    con_nc_up= ((dt['pc']=='C') & (dt['play'].isin(['CAL','BF']))) & con_fm_strike_up
+    con_np_dn= ((dt['pc']=='P') & (dt['play'].isin(['CAL','BF']))) & con_fm_strike_up
+    CON_itm=con_sc_up | con_sp_dn | con_nc_up |con_np_dn 
+#a_be
+    CON_be=(dt.close>dt.beup) | (dt.close< dt.bedn)
+#a_event        
+    con_earn_dt=dt['days_to_earn']>0
+    con_div_dt=dt['days_to_div']>0
+    con_event_dt=dt['days_to_event']>0
     
+    CON_event=(dt['days_to_div']<=event_days & con_div_dt)\
+            |(dt['days_to_earn']<=event_days & con_earn_dt)\
+              |(dt['days_to_event']<=event_days & con_event_dt )  
+#a_momt    
     con_momt_l= con_l & (  (dt['srtn_22_pct']<dt['i_srtn_22_pct']) \
                     | (dt['rtn_22_pct']<dt['i_rtn_22_pct']) )
-#                    | (dt['rsi']<dt['i_rsi'])  ) 
     con_momt_s= con_s & ( (dt['srtn_22_pct']>dt['i_srtn_22_pct']) \
                    | (dt['rtn_22_pct']>dt['i_rtn_22_pct']) )
-#                   | (dt['rsi']<dt['i_rsi']) )
     CON_momt= con_momt_l | con_momt_s
-
+#a_key_level
     CON_key_level=(np.abs(dt['fm_50'])<= key_level_pct) \
           |(np.abs(dt['fm_200'])<= key_level_pct) \
           |(np.abs(dt['fm_hi'])<= key_level_pct) \
           |(np.abs(dt['fm_lo'])<= key_level_pct)   
-
-    CON_be=(dt.last_p>dt.beup.astype(float)) | (dt.last_p< dt.bedn.astype(float))
-        
-    con_exit_no_chance=((dt['pl_pct']<0 )&(dt['days_pct']>=exit_days_pct))
-    con_exit_no_time= (dt['days_to_exp']<=exit_days_to_exp)
-
-    CON_exit= con_exit_no_chance |con_exit_no_time 
-
-    CON_event=(dt['days_to_div']<=event_days)|(dt['days_to_earn']<=event_days)\
-              |(dt['days_to_event']<=event_days)
-    CON_runaway= (np.abs(dt['last_p']/dt['entry_p'].astype(float)-1)>=p_runaway_pct)
-#    con_v=stk vol chg |pd.notnull(dt['mc']) |pd.notnull(dt['mc'])
-    CON_ov=pd.notnull(dt['mc']) |pd.notnull(dt['bc'])  #unop for live trade !!
-#    con_k= any(list(filter(lambda x:np.abs(x)<=k_level_pct, dt[['fm_hi','fm_lo','fm_50','fm_200']]))
-#    con_k=any(np.abs(x)<=k_level_pct for x in dt[['fm_hi','fm_lo','fm_50','fm_200']])
+#a_unop              
+    CON_unop=pd.notnull(dt['mc']) |pd.notnull(dt['bc'])  
+#a_weigh
     CON_weigh=dt['weigh'] >=weigh_per_ticker
+#a_vol
+    dt['i_hv_22']=1
+    play_lv=['SC','SP','SCV','SPV','IC','BW','BF']
+    play_hv=['LC','LP','LCV','LPV','LCP','CAL','SYN']
+    con_lv=dt.play.isin(play_lv)
+    con_hv=dt.play.isin(play_hv)
+    con_hv_up=(dt['hv_22']/dt['i_hv_22']> (1+hv_chg_pct)) & con_lv
+    con_hv_dn=(dt['hv_22']/dt['i_hv_22']< (1-hv_chg_pct)) & con_hv
+    con_spike= (dt['spike']>spike_std) |(dt['spike_etd']>spike_std)
+    CON_hv=con_hv_up | con_hv_dn| con_spike
+    
 #UPDATE alert
 #    dt['buff']=1- dt.groupby('act')['risk_live'].sum()/dt['cap']
 #    CON_buff=dt['buff']<=buff
     dt['a_out']=CON_out
     dt['a_stop']=CON_stop
-    dt['a_prof']=CON_prof
-    dt['a_itm']=CON_itm
-    dt['a_event']=CON_event
-    
-    dt['a_be']=CON_be
     dt['a_exit']=CON_exit
-    dt['a_ov']=CON_ov
-    
+    dt['a_itm']=CON_itm
+    dt['a_be']=CON_be
+    dt['a_event']=CON_event
+    dt['a_momt']=CON_momt 
     dt['a_key']=CON_key_level
-    dt['a_run']=CON_runaway
-    dt['a_momt']=CON_momt
+    dt['a_unop']=CON_unop
     dt['a_weigh']=CON_weigh
+    dt['a_hv']=CON_hv
 #    dt['a_buff']=CON_buff
+
     dt.replace(False, "", inplace=True)
     dt.replace(np.nan, "", inplace=True)
+    dt[con_event_dt]['event_dt']=''
+    dt[con_earn_dt]['earn_dt']=''    
+    dt[con_div_dt]['div_dt']=''
+    
     try:
-        dt.drop(['index','Unnamed: 0'], axis=1, inplace=True)
+        dt.drop(['index'], axis=1, inplace=True)
     except:
         pass
 #APPEND to tbl_track_hist   (record of full trade for Analysis)
@@ -426,51 +463,38 @@ def track_raw(q_date):
 ##REPLACE tbl_track with latet data    
 #    dt_track_live=dt[dt.ticker.isin(dt.ticker)]
 #    to_sql_replace(dt_track_live, "tbl_track")
-#    
 #    df=dt_track_live
-    df=dt
-#    show=['act','ticker','last_p','ip', 'lp', 'mp', 'risk_live','pl_pct', 'days_to_exp']
-    show=['act', 'ticker','days_to_exp']
-    show_alerts=['risk_live', 'pl_pct', 'pl', 'a_out', 'a_stop', 'a_prof', 'a_itm','a_event', 'a_exit', 'a_be','a_key', 'a_momt','a_run',\
-               'a_ov', 'a_weigh']
-    show_alerts=show+show_alerts
-    show_base=['ticker','last_p','risk_live','pl_pct', 'tgt_dt', 'lp', 'mp','tgt_p','days_pct']
+    show_alerts=['ticker','risk_live', 'pl_pct', 'pl', 'a_out', 'a_stop', 'a_exit',\
+                 'a_itm','a_event', 'a_be','a_momt','a_unop', 'a_hv','a_key', 'a_weigh']
+    show_base=['ticker','close','risk_live','pl_pct','lp', 'mp','tgt_p','tgt_dt','days_pct']
+    
+    show_stop=show_base + ['bedn','beup']
     show_out=show_base
-    show_stop=show_base + ['bedn','beup','days_to_exp']
-    show_prof=show_base
     show_exit=show_base + ['days_to_exp']
     show_itm=show_base +['lsnv','pc','play','strike']
-    show_runaway_key_momt=show_base+['strike','entry_p','fm_50','fm_200','fm_hi','fm_lo','rtn_chg','srtn_chg']
-    show_ov_event=show_base+['div_dt','event_dt','mc','bc']
-    
+    show_be=show_base+['bedn','beup']
+    show_unop=['ticker','mc','bc']
+    show_event= show_base + ['div_dt','event_dt', 'earn_dt']
+    show_momt=show_base+['sec','rtn_22_chg','srtn_22_chg']
+    show_hv=show_base +['spike','spike_etd','hv_22','i_hv_22','i_iv']
+
+    dt.sort_values(['risk_live','pl_pct','days_pct'], ascending=False, inplace=True)
     pd.set_option('display.expand_frame_repr', False)
-    print(" \n---- ALERT MATRIX  ---       ")
-    df_alerts=df[show_alerts]
-    df_alerts.sort_values(['risk_live','pl_pct'], ascending=False, inplace=True)  
-    print(df_alerts)
-    print("\n ---- OUT tgt_dt (no catalyt)  ---       ")
-    print(df[CON_out][show_out])
-    print("\n ---- stop loss > -50% ---       ")
-    print(df[CON_stop][show_stop])
-    print("\n ---- Exit prof >30% ---       ")
-    print(df[CON_prof][show_prof])
-    print("\n      ---- In the money ---           ")
-    print(df[CON_itm][show_itm]) 
-    print("\n      ---- exit: loss and no time---     ")
-    print(df[CON_exit][show_exit]) 
-    print("\n --- event: earn_dt, div_dt, unop_bc/mc today  -----")
-    print(df[CON_ov |CON_event][show_ov_event])
-    print("\n  ---- fm_strike>10%, any keylevel< 1%, ts/sm against bet ---   ")   
-    print(df[CON_runaway | CON_key_level | CON_momt][show_runaway_key_momt])
-    cols=['ticker','lsnv','pc','play','pl','pl_pct','days_pct','risk_live','risk_orig']
-    print("\n ---- cut aging trade ----")
-    print(df[df.days_pct>=0.5][cols])
-    
+    print(" \n---- ALERT  ---  \n ", dt[show_alerts])
+    print("\n ---- STOP ---   \n ", dt[CON_stop][show_stop])
+    print("\n ---- OUT ---    \n ", dt[CON_out][show_out])
+    print("\n ---- EXIT ---   \n ", dt[CON_exit][show_exit])
+    print("\n ---- HV ---   \n ", dt[CON_hv][show_hv])
+    print("\n ---- ITM ---    \n ", dt[CON_itm][show_itm])
+    print("\n ---- BE ---   \n ", dt[CON_be][show_be])
+    print("\n ---- UNOP ---    \n ", dt[CON_unop][show_unop])
+    print("\n ---- EVENT---   \n ", dt[CON_event][show_event])
+    print("\n ---- MOMT ---    \n ", dt[CON_momt][show_momt])
+ 
     pd.set_option('display.expand_frame_repr', True)
-    return df
+    return dt
 # INTEL_op
-# iv rank only
-#2. web_mc: one year iv/ vwop data -> plot or ai
+
 #3. p/c premium sentiment
 #4
 #Source: tbl_mc_raw, bc_raw ->tbl_spec_candy
