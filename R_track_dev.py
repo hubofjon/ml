@@ -250,7 +250,17 @@ def track_raw(q_date):
             +'|'+df_mc['pct_c'].astype(str)
     else:
         dt['mc']=''
-    dt['bc']=''
+    
+    df_bc=read_sql("SELECT * FROM tbl_bc_raw ", q_date)
+    df_bc['date']=pd.to_datetime(df_bc['date'])
+    df_bc=df_bc[df_bc.date==q_date]
+    loc_bc=dt['ticker'].isin(df_bc['ticker'])
+    if loc_bc.any():
+        dt.loc[loc_bc,'bc']=df_bc['ticker'] +'|' + df_bc['v_oi'].astype(str)\
+            +'|'+df_bc['type'].astype(str)
+    else:
+        dt['bc']=''
+        
 #Clean/convert data
 #1. from flask 
     dt['date']=q_date
@@ -268,7 +278,8 @@ def track_raw(q_date):
             dt[x]=dt[x].replace(ch,dummy_dt).astype(str)
  #       dt[x]=[parser.parse(i) for i in dt[x]]
         dt[x]=dt[x].apply(lambda i: parser.parse(i))
-
+ #force tgt_dt to be    
+    dt['tgt_dt']=dt['entry_dt']+(dt['exp_dt']-dt['entry_dt'])/2
 #existing missing dt     
     dt['si']=dt['si'].str.replace('%','')
     dt['si']=dt['si'].replace('',0).astype(float)
@@ -329,7 +340,7 @@ def track_raw(q_date):
 #    dt['fm_strike']=(dt['close']/dt['strike']-1).round(2)
     dt['srtn_22_chg']=dt['srtn_22_pct']-dt['i_srtn_22_pct']
     dt['rtn_22_chg']=dt['rtn_22_pct']-dt['i_rtn_22_pct']
-    dt['hv_22_chg']=dt['hv_22']-dt['i_hv_22']
+    dt['hv_22_chg_pct']=dt['hv_22']/dt['i_hv_22']-1
 #    dt['rsi_chg']=dt['rsi']<dt['i_rsi']
     dt['weigh']=dt['risk_live']/dt['cap']
     dt['days_etd']=dt['days_all']-dt['days_to_exp']
@@ -446,11 +457,15 @@ def track_raw(q_date):
     dt['a_hv']=CON_hv
 #    dt['a_buff']=CON_buff
 
+#clean display
     dt.replace(False, "", inplace=True)
     dt.replace(np.nan, "", inplace=True)
-    dt[con_event_dt]['event_dt']=''
-    dt[con_earn_dt]['earn_dt']=''    
-    dt[con_div_dt]['div_dt']=''
+    dt.loc[~con_event_dt, 'event_dt']=np.nan
+    dt.loc[~con_earn_dt, 'earn_dt']=np.nan    
+    dt.loc[~con_div_dt, 'div_dt']=np.nan
+    CON_event_show=pd.notnull(dt['div_dt'])|pd.notnull(dt['earn_dt'])\
+        |pd.notnull(dt['event_dt'])
+#    dt[['event_dt', 'earn_dt','div_dt']].fillna('', inplace=True)
     
     try:
         dt.drop(['index'], axis=1, inplace=True)
@@ -464,9 +479,9 @@ def track_raw(q_date):
 #    dt_track_live=dt[dt.ticker.isin(dt.ticker)]
 #    to_sql_replace(dt_track_live, "tbl_track")
 #    df=dt_track_live
-    show_alerts=['ticker','risk_live', 'pl_pct', 'pl', 'a_out', 'a_stop', 'a_exit',\
+    show_alerts=['ticker','risk_live', 'pl_pct', 'pl', 'beta','si','a_out', 'a_stop', 'a_exit',\
                  'a_itm','a_event', 'a_be','a_momt','a_unop', 'a_hv','a_key', 'a_weigh']
-    show_base=['ticker','close','risk_live','pl_pct','lp', 'mp','tgt_p','tgt_dt','days_pct']
+    show_base=['ticker','risk_live','pl_pct','days_pct', 'lp', 'mp','tgt_p','close','beta','si']
     
     show_stop=show_base + ['bedn','beup']
     show_out=show_base
@@ -475,8 +490,8 @@ def track_raw(q_date):
     show_be=show_base+['bedn','beup']
     show_unop=['ticker','mc','bc']
     show_event= show_base + ['div_dt','event_dt', 'earn_dt']
-    show_momt=show_base+['sec','rtn_22_chg','srtn_22_chg']
-    show_hv=show_base +['spike','spike_etd','hv_22','i_hv_22','i_iv']
+    show_momt=show_base+['play','sec','rtn_22_chg','srtn_22_chg']
+    show_hv=show_base +['spike','spike_etd','hv_22','hv_22_chg_pct','i_iv']
 
     dt.sort_values(['risk_live','pl_pct','days_pct'], ascending=False, inplace=True)
     pd.set_option('display.expand_frame_repr', False)
@@ -488,7 +503,7 @@ def track_raw(q_date):
     print("\n ---- ITM ---    \n ", dt[CON_itm][show_itm])
     print("\n ---- BE ---   \n ", dt[CON_be][show_be])
     print("\n ---- UNOP ---    \n ", dt[CON_unop][show_unop])
-    print("\n ---- EVENT---   \n ", dt[CON_event][show_event])
+    print("\n ---- EVENT---   \n ", dt[CON_event & CON_event_show][show_event])
     print("\n ---- MOMT ---    \n ", dt[CON_momt][show_momt])
  
     pd.set_option('display.expand_frame_repr', True)
