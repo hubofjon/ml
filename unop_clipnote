@@ -1,24 +1,28 @@
----- ALERT  ---  
-     ticker  risk_live  pl_pct      pl beta si a_out a_stop a_exit a_itm  a_event  a_be a_momt a_unop  a_hv a_key a_weigh
-8    ATVI   1,500.00   -0.07 -106.00 2.39     True                True     True         True               True        
-21    ITW   1,430.00   -0.01  -10.00 1.34                         True     True  True   True                           
-13    WHR     760.00    0.40  216.00 1.28     True          True           True         True         True  True        
-10    MNK     500.00   -0.19 -116.00 2.36                                  True  True   True         True              
-12    BDN     440.00   -0.28 -168.00                              True     True  True                True              
-15    TLT     400.00   -0.17  -80.00                                       True                      True  True        
-9     RUN     330.00   -0.01   -4.00                                       True                                        
-5     NRG     330.00   -0.47 -450.00 3.19            True                  True  True   True                           
-16   SYMC     300.00   -0.18  -64.00 1.98                                  True                      True              
-14    DLX     290.00    0.06   16.00                                       True         True         True              
-4     PPL     210.00   -0.59 -306.00 0.21            True                  True  True                      True        
-1     CBL     200.00   -0.18  -44.00                                       True  True   True               True        
-11   INDA     200.00   -0.46 -170.00                 True         True     True  True                True              
-18    IVZ     140.00   -0.24  -44.00 2.01     True                         True  True                True              
-19    NGL     120.00   -0.14  -20.00                                       True  True                True              
-2     SIG     120.00   -0.55 -144.00 0.48     True   True                  True  True                True              
-17    FDC     100.00   -0.22  -28.00                                       True  True                True              
-20   VKTX     100.00   -0.35  -54.00                 True                  True  True                True              
-7    WYNN     100.00   -0.89 -841.60 1.60     True   True                  True  True   True         True              
-3     PTI      93.00    0.04   10.00                                       True  True                                  
-6     VNQ      80.00   -0.56 -101.90          True   True         True     True  True   True         True  True        
-0     EPR      30.00   -0.63  -52.00          True   True                  True  True                      True        
+mar20
+a. T_intel (si, funda data- whispersite?)
+b. if no pe/yield, then spec_candy flask enter pe/yield
+c
+1. flask quick update via table
+https://stackoverflow.com/questions/34813278/displaying-sqlite3-results-in-a-html-table-with-python
+https://stackoverflow.com/questions/45558349/flask-display-database-from-python-to-html
+https://stackoverflow.com/questions/7409108/portfolio-variance-of-a-portfolio-of-n-assets-in-python
+
+
+diversification
+a. total var_id: abs().sum()
+b. if abs(var_id)> 2*R (2.5% of cap) -> alert
+c. corr
+dp=read_sql("select * from tbl_pv_all")
+list_dt=dt.ticker.tolist()
+list_dt=list_dt+['SPY']
+dpv=dp[dp.ticker.isin(list_dt)]
+dpv=dx.pivot_table(index='date',columns='ticker',values='close')
+dcr=dpv.tail(132).corr().ix['SPY',:]
+dcr=dcr.reset_index(inplace=True)
+dcr.columns=['ticker','corr']
+dtc=pd.merge(dt, dcr, on='ticker')
+dy=dtc[['ticker','corr','delta','beta','close','hv_22','var_hd','sec']]
+x=dy.groupby('sec')['var_hd'].sum()
+x=x.to_frame().reset_index()
+z=pd.merge(x,dtc[['sec','srtn_22_pct','srtn_22_chg']], how='left', on ='sec')
+(show var_hd exposure by sector and sector strength)
