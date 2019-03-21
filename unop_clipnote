@@ -1,3 +1,87 @@
+mar21
+W5
+1. add 'tgt_po', if days_pct>0.2, no tgt_po then alert
+2. a_size: 'var_id"*2>R
+3. tgt_p pre_set by pro_risk
+4. fundamental data
+5. alert_spike
+6. fix con_hv, lv
+M21.
+Pain: riskon.off baromters -> etf
+nimble- exit@tgt_p, stop@r-on/off
+alert@spike, spike_etd, spike_hv, 
+spec_candy:show_basic_stat + fundamental+si+news/
+cut ticker
+
+prob_algo
+class on norm distribution
+https://medium.com/@balamurali_m/normal-distribution-with-python-793c7b425ef0
+
+https://quant.stackexchange.com/questions/7169/how-to-calculate-stock-move-probability-based-on-option-implied-volatility-and-t/7188
+https://stackoverflow.com/questions/12412895/calculate-probability-in-normal-distribution-given-mean-std-in-python
+import scipy.stats
+scipy.stats.norm(loc=100, scale=12)
+#where loc is the mean and scale is the std dev
+#if you wish to pull out a random number from your distribution
+scipy.stats.norm.rvs(loc=100, scale=12)
+
+#To find the probability that the variable has a value LESS than or equal
+#let's say 113, you'd use CDF cumulative Density Function
+scipy.stats.norm.cdf(113,100,12)
+Output: 0.86066975255037792
+#or 86.07% probability
+
+#To find the probability that the variable has a value GREATER than or
+#equal to let's say 125, you'd use SF Survival Function 
+scipy.stats.norm.sf(125,100,12)
+Output: 0.018610425189886332
+#or 1.86%
+
+#To find the variate for which the probability is given, let's say the 
+#value which needed to provide a 98% probability, you'd use the 
+#PPF Percent Point Function
+scipy.stats.norm.ppf(.98,100,12)
+Output: 124.64498692758187
+
+	spec_cdy
+Fum	sec, pe, yld, beta
+	
+LSNV	rtn_22_pct
+	srn_22_pct
+	
+play	iv_rank
+	hv_rank
+	iv_hv
+	iv
+	hv
+	
+strike	sig_22
+	sig_11
+	sig_dte
+	
+exp_dt	earn/div/event_dt
+	
+	
+cat	note(unop)
+bmc_candy	strike, dte, etc/
+	
+	
+Interactive	
+flask input	beup/ bedn
+	exp_dt
+	prob_c
+	prob_e
+	W5
+1. add 'tgt_po', if days_pct>0.2, no tgt_po then alert
+2. a_size: 'var_id"*2>R
+3. tgt_p pre_set by pro_risk
+4. fundamental data
+5. alert_spike
+6. fix con_hv, lv
+
+
+
+
 mar20
 a. T_intel (si, funda data- whispersite?)
 b. if no pe/yield, then spec_candy flask enter pe/yield
