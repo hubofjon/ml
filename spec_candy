@@ -1,6 +1,155 @@
-127    GDS      aPR35-30P-40C@0.5*2kbot
-128   HRTX            Jun30-35c@0.95*2k
-129     MO            May55p@2.06*5kbot
-130     ON              MAY24C@.9*8kbot
-131   PRTY                J10C,O7P SOLD
-132    VMC     apr110-100p-120c@1*3kbot
+      risk_live  weigh       pl
+act                           
+IBQ    8964.00   0.46 -4426.50
+ 
+---- ALERT  ---  
+     ticker risk_live  pl_pct      pl  var_hd  var_id  var_hv beta si a_out a_stop a_exit a_itm  a_event  a_be a_momt  a_unop  a_hv a_key a_weigh
+7    WYNN             -1.00 -941.60   40.52   57.92    0.73 1.60     True   True                  True  True   True    True        True        
+22    SMG   1260.00    0.34  450.00 -250.89 -243.23    2.26                        True           True  True           True                    
+8    ATVI   1080.00   -0.33 -526.00 -273.64 -278.60    5.81 2.39     True   True         True     True  True   True    True  True              
+21    CCK    990.00   -0.28 -386.00  -94.66 -157.86    0.63                                       True  True   True    True  True  True        
+20   MDLZ    924.00   -0.44 -976.00   17.70   23.56    3.19 1.09            True                  True  True           True  True  True        
+19    ITW    750.00   -0.48 -690.00 -195.33 -295.26    1.50 1.34     True   True         True     True  True   True    True  True              
+11    BDN    560.00   -0.08  -48.00  -44.78  -63.33    0.68                              True     True  True           True                    
+9     RUN    530.00    0.14   66.00    1.54    2.63   -0.02                                       True                 True                    
+14   SYMC    360.00   -0.01   -4.00   -9.27  -14.04    0.97 1.98                                  True  True           True                    
+5     NRG    330.00   -0.47 -450.00  -54.67  -68.30    0.92 3.19            True                  True  True           True        True        
+13    TLT    320.00   -0.33 -160.00  -28.79  -22.93    0.18                 True         True     True  True           True  True  True        
+3     PTI    270.00    0.82  187.00   14.71   70.43    0.49                        True           True  True           True                    
+12    DLX    260.00   -0.05  -14.00   40.57   67.37   -0.72                                       True         True    True  True              
+4     PPL    240.00   -0.53 -276.00  -14.00  -19.86    0.24 0.21            True                  True  True           True                    
+1     CBL    200.00   -0.18  -44.00   17.02   15.06    0.16                                       True  True   True    True                    
+10   INDA    200.00   -0.46 -170.00  -11.95  -12.90    0.35                 True         True     True  True           True  True              
+17    NGL    160.00    0.14   20.00   14.33   22.92    0.97                                       True                 True  True  True        
+16    IVZ    140.00   -0.24  -44.00   11.84   13.76    0.41 2.01     True                         True  True   True    True                    
+18   VKTX    100.00   -0.35  -54.00   22.72   24.32    0.05                 True                  True  True           True  True              
+2     SIG    100.00   -0.62 -164.00   17.40   30.26    1.05 0.48     True   True                  True  True           True                    
+15    FDC     80.00   -0.37  -48.00  -21.44  -18.78    0.20                 True                  True  True   True    True  True              
+6     VNQ     80.00   -0.56 -101.90  -27.60  -35.56    0.09          True   True         True     True  True   True    True  True  True        
+0     EPR     30.00   -0.63  -52.00   -1.97   -2.60    0.01          True   True                  True  True           True  True  True        
+
+ ---- STOP ---   
+     ticker risk_live  pl_pct days_pct    lp   mp tgt_p  close beta si   bedn   beup
+7    WYNN             -1.00     0.63  2.35            121.14 1.60    137.00       
+8    ATVI   1080.00   -0.33     0.60  2.67 1.80  3.60  48.60 2.39            47.20
+20   MDLZ    924.00   -0.44     0.10  2.67 1.54  2.20  48.88 1.09     52.00  45.00
+19    ITW    750.00   -0.48     0.86 14.30 7.50       146.47 1.34           141.00
+5     NRG    330.00   -0.47     0.38  1.12 0.55  2.00  43.37 3.19            33.00
+13    TLT    320.00   -0.33     0.46  2.30 1.60  3.00 122.95         118.00 122.00
+4     PPL    240.00   -0.53     0.17  0.85 0.40  0.90  32.30 0.21            24.15
+10   INDA    200.00   -0.46     0.46  0.35 0.20  0.70  35.54          26.00  33.00
+18   VKTX    100.00   -0.35     0.10  0.75 0.50  1.30   9.28           8.80       
+2     SIG    100.00   -0.62     0.76  1.30 0.50  1.30  27.29 0.48     31.00  50.00
+15    FDC     80.00   -0.37     0.19  0.30 0.20        25.53                 23.70
+6     VNQ     80.00   -0.56     0.64  0.45 0.20  0.80  86.85                 78.40
+0     EPR     30.00   -0.63     0.83  0.40 0.15  0.80  76.44                 50.00
+
+ ---- OUT ---    
+     ticker risk_live  pl_pct days_pct    lp   mp tgt_p  close beta si
+7    WYNN             -1.00     0.63  2.35            121.14 1.60   
+8    ATVI   1080.00   -0.33     0.60  2.67 1.80  3.60  48.60 2.39   
+19    ITW    750.00   -0.48     0.86 14.30 7.50       146.47 1.34   
+16    IVZ    140.00   -0.24           0.90 0.70  1.50  19.79 2.01   
+2     SIG    100.00   -0.62     0.76  1.30 0.50  1.30  27.29 0.48   
+6     VNQ     80.00   -0.56     0.64  0.45 0.20  0.80  86.85        
+0     EPR     30.00   -0.63     0.83  0.40 0.15  0.80  76.44        
+
+ ---- EXIT ---   
+     ticker risk_live  pl_pct days_pct   lp   mp tgt_p  close beta si  days_to_exp
+22    SMG   1260.00    0.34     0.11 1.09 1.40        78.80                   25
+3     PTI    270.00    0.82     0.36 0.40 0.90  1.50   4.30                  116
+
+ ---- HV ---   
+     ticker  spike  spike_etd  hv_22 hv_22_chg_pct   i_iv
+8    ATVI   2.80       -inf   0.34                     
+21    CCK   2.37   -3610.15   0.16          0.00   0.25
+20   MDLZ   2.27   -4271.61   0.11         -0.05   0.15
+19    ITW   0.66     115.61   0.13         -0.28  21.00
+13    TLT   0.35     106.83   0.10                21.00
+12    DLX   1.48      31.86   0.22                32.00
+10   INDA  -0.31      19.42   0.17                21.00
+17    NGL   0.83      -5.57   0.31         -0.26  33.10
+18   VKTX   3.08       3.58   0.75          0.35 113.60
+15    FDC   3.16      -0.50   0.18          0.18  24.90
+6     VNQ   3.46       -inf   0.10                     
+0     EPR   2.41       -inf   0.14                     
+
+ ---- ITM ---    
+     ticker days_pct  close  strike lsnv pc play
+8    ATVI     0.60  48.60   41.25    S  C  SCV
+19    ITW     0.86 146.47  140.00    S  C  SCV
+11    BDN     0.10  15.61   15.00    L  P  CAL
+13    TLT     0.46 122.95  120.00    L  C  CAL
+10   INDA     0.46  35.54   29.00    L  P  CAL
+6     VNQ     0.64  86.85   78.00    L  P  CAL
+
+ ---- BE ---   
+     ticker days_pct  close   bedn   beup
+7    WYNN     0.63 121.14 137.00       
+22    SMG     0.11  78.80         78.00
+8    ATVI     0.60  48.60         47.20
+21    CCK     0.11  55.91         54.00
+20   MDLZ     0.10  48.88  52.00  45.00
+19    ITW     0.86 146.47        141.00
+11    BDN     0.10  15.61         14.25
+14   SYMC     0.28  23.59  21.00  23.30
+5     NRG     0.38  43.37         33.00
+13    TLT     0.46 122.95 118.00 122.00
+3     PTI     0.36   4.30   5.50       
+4     PPL     0.17  32.30         24.15
+1     CBL     0.23   1.89   2.10       
+10   INDA     0.46  35.54  26.00  33.00
+16    IVZ           19.79  26.00       
+18   VKTX     0.10   9.28   8.80       
+2     SIG     0.76  27.29  31.00  50.00
+15    FDC     0.19  25.53         23.70
+6     VNQ     0.64  86.85         78.40
+0     EPR     0.83  76.44         50.00
+
+ ---- UNOP ---    
+     ticker mc bc
+7    WYNN      
+22    SMG      
+8    ATVI      
+21    CCK      
+20   MDLZ      
+19    ITW      
+11    BDN      
+9     RUN      
+14   SYMC      
+5     NRG      
+13    TLT      
+3     PTI      
+12    DLX      
+4     PPL      
+1     CBL      
+10   INDA      
+17    NGL      
+16    IVZ      
+18   VKTX      
+2     SIG      
+15    FDC      
+6     VNQ      
+0     EPR      
+
+ ---- EVENT---   
+     ticker days_pct  close div_dt event_dt    earn_dt
+21    CCK     0.11  55.91    NaT      NaT 2019-05-08
+20   MDLZ     0.10  48.88    NaT      NaT 2019-05-01
+14   SYMC     0.28  23.59    NaT      NaT 2019-05-02
+1     CBL     0.23   1.89    NaT      NaT 2019-04-30
+17    NGL     0.19  14.01    NaT      NaT 2019-05-13
+18   VKTX     0.10   9.28    NaT      NaT 2019-06-12
+15    FDC     0.19  25.53    NaT      NaT 2019-05-08
+
+ ---- MOMT ---    
+     ticker  entry_p  strike  close play  sec  rtn_22_chg srtn_22_chg
+7    WYNN   127.23  135.00 121.14  CAL  XLY       -8.18        4.00
+8    ATVI    43.00   41.25  48.60  SCV  XLK        9.77        1.00
+21    CCK    54.93   55.00  55.91  LPV             0.67            
+19    ITW   143.18  140.00 146.47  SCV  XLI       -0.15        1.00
+12    DLX    47.00   45.00  42.44  CAL            -2.17            
+1     CBL     2.01    1.50   1.89                 -2.95            
+16    IVZ    19.78   25.00  19.79   LC  XLF       -1.70       -5.00
+15    FDC    25.63   24.00  25.53  LPV            -0.79            
+6     VNQ    82.88   78.00  86.85  CAL            -3.77            
