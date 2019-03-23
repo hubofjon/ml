@@ -7,6 +7,7 @@ import sqlite3 as db
 from timeit import default_timer as timer
 from R_plot import plot_base
 from dateutil import parser
+import scipy.stats
 
 from termcolor import colored, cprint
 import warnings
@@ -240,6 +241,7 @@ def track_raw(q_date):
         dt[x]=dt[x].apply(lambda i: parser.parse(i))
  #force tgt_dt to be    
     dt['tgt_dt']=dt['entry_dt']+(dt['exp_dt']-dt['entry_dt'])/2
+    
 #existing missing dt     
     try:
         for ch in ['%','None','N','N/A','0']:
@@ -301,6 +303,26 @@ def track_raw(q_date):
     dt['days_to_event']=dt['event_dt'].subtract(dt['date']).dt.days
     
     dt['iv_hv']=dt['iv']/dt['hv']
+    #get prob_t, prob
+    
+    dt['days_to_tgt_dt']=dt['tgt_dt'].subtract(dt['entry_dt']).dt.days 
+    p_tgt_dt_std=dt['iv']*np.sqrt(dt['days_to_tgt_dt']/252)
+    p_std=dt['iv']*np.sqrt(dt['days_to_exp']/252)
+    p_mean=dt['close']
+    if dt['bedn']==0:  #less or equal
+        dt['prob_t']=scipy.stats.norm.cdf(dt['beup'], p_mean, p_tgt_dt_std)
+        dt['prob']=scipy.stats.norm.cdf(dt['beup'], p_mean, p_std)
+    elif dt['beup']==0:#greater or equal
+        dt['prob_t']=scipy.stats.norm.sf(dt['bedn'], p_mean, p_tgt_dt_std)
+        dt['prob']=scipy.stats.norm.sf(dt['bedn'], p_mean, p_std)
+    elif (dt['bedn']>0 & dt['beup']>0):
+        dt['prob']=1- scipy.stats.norm.cdf(dt['bedn'], p_mean, p_tgt_dt_std)- \
+                  scipy.stats.norm.sf(dt['beup'], p_mean, p_tgt_dt_std)        
+        dt['prob']=1- scipy.stats.norm.cdf(dt['bedn'], p_mean, p_std)- \
+                  scipy.stats.norm.sf(dt['beup'], p_mean, p_std)
+    else: 
+        print("track_raw:  ln319: beup/bedn both 0")
+        return
     
 #ALERT data prepare
     #    dt['fm_strike']=(dt['close']/dt['strike']-1).round(2)
@@ -312,14 +334,20 @@ def track_raw(q_date):
     
     dt['days_etd']=dt['days_all']-dt['days_to_exp']
     
+    
     dt['sig_etd']=dt['entry_p']*dt['i_iv']/100*np.sqrt(dt['days_etd']/252)
     dt['spike_etd']=(dt['close']-dt['entry_p']/dt['sig_etd'])
     dt['sig_etd2']=dt['entry_p']*dt['i_hv_22']/100*np.sqrt(dt['days_etd']/252)
     dt['spike_etd2']=(dt['close']-dt['entry_p']/dt['sig_etd2'])    
     dt['spike_etd']=dt[['spike_etd','spike_etd2']].max(axis=1)
+    
+    #get risk profile (r, rx, risky)
+    dr=read_sql("SELECT * FROM tbl_risk")
+    dt=pd.merge(dt, dr, on='play')
 
+#no new column from here onward
 # keep live trade only -> for proper alert eg. weigh calculation
-# move non-live ticker to tbl_c_hist, no new column from here onward
+# move non-live ticker to tbl_c_hist, 
     scm_t_c=[x for x in dt.columns if x not in ['index']]
     dt=dt[scm_t_c]
     con_live=dt['exit_dt']=='N'
@@ -359,7 +387,7 @@ def track_raw(q_date):
     '''
 ## UPDATE Alert - variables, 
     dr=read_sql("select * from tbl_risk")
-    R=0.025
+    Max_loss_per_pos=0.05
     Rx=1.2
 #   dt['r']=dt['cap']*r
     stop_pct= -0.3
@@ -371,11 +399,11 @@ def track_raw(q_date):
     event_days=5
     weigh_per_ticker=0.2
     itm_pct=0.02
-    spike_std=2
+    spike_min=2
     hiv_chg_pct=0.2
     hv_rank_chg_min=0.1
     
-    CON_stop= (dt['pl_pct']<= stop_pct) |(dt['pl']< -dt['cap']*R)
+    CON_stop= (dt['pl_pct']<= dt['r']) 
     CON_out=(dt['tgt_dt']<q_date) | (dt['days_pct']>=exit_days_pct)
     CON_exit=dt['pl_pct']> exit_pct
     
@@ -439,8 +467,17 @@ def track_raw(q_date):
     
     con_hiv_up= con_lv_play & (con_hv_up | con_iv_up)
     con_hiv_dn=con_hv_play & (con_hv_dn | con_iv_dn)
-    CON_hiv= con_hiv_up | con_hiv_dn
-    CON_spike= (np.abs(dt['spike'])>spike_std) |(np.abs(dt['spike_etd'])>spike_std)
+    con_hiv= con_hiv_up | con_hiv_dn
+    CON_spike= (np.abs(dt['spike'])>spike_min) |(np.abs(dt['spike_etd'])>spike_min) #action on any SPIKE
+
+#a_dir_wrong
+    con_dir_ln=(dt['lsnv']=='LN') & (dt['delta']<0)
+    con_dir_sn=(dt['lsnv']=='SN') & (dt['delta']>0)
+    con_dir_n=(dt['lsnv']=='N') & CON_spike  #main play is N, start trending
+    con_dir_v=(dt['lsnv']=='V') & con_hiv  # main play is Vol
+    CON_dir=(con_dir_ln | con_dir_sn |con_dir_n | con_dir_v)
+#a_size
+    CON_size=(dt['var_id'], dt['var_hd']).max(axis=1)*2>( dt['cap']*Max_loss_per_pos)
     
 #UPDATE alert
 #    dt['buff']=1- dt.groupby('act')['risk_live'].sum()/dt['cap']
@@ -455,9 +492,9 @@ def track_raw(q_date):
     dt['a_key']=CON_key_level
     dt['a_unop']=CON_unop
     dt['a_weigh']=CON_weigh
-    dt['a_hiv']=CON_hiv
+    dt['a_dir']=CON_dir
     dt['a_spike']=CON_spike
-    
+    dt['a_size']=CON_size
 
 #clean display
     dt.replace(False, "", inplace=True)
@@ -480,7 +517,7 @@ def track_raw(q_date):
     show_unop=['ticker','mc','bc']
     show_event= ['ticker','days_pct','close','div_dt','event_dt', 'earn_dt']
     show_momt=['ticker', 'entry_p','strike','close', 'play','sec','rtn_22_chg','srtn_22_chg']
-    show_hiv=['ticker','var_id', 'vega','iv','i_iv', 'hv_22','hv_22_chg_pct','iv_hv','play']
+    show_dir=['ticker','var_id', 'vega','iv','i_iv', 'hv_22','hv_22_chg_pct','iv_hv','play']
     show_spike=['ticker','var_id', 'spike','spike_etd','delta','close','entry_p', 'pl_pct','days_pct']
     
     dt.sort_values(['risk_live','pl_pct','days_pct'], ascending=False, inplace=True)
@@ -489,8 +526,8 @@ def track_raw(q_date):
     print("\n ---- STOP ---   \n ", dt[CON_stop][show_stop])
     print("\n ---- OUT ---    \n ", dt[CON_out][show_out])
     print("\n ---- EXIT ---   \n ", dt[CON_exit][show_exit])
-    print("\n ---- SPIKE ---   \n ", dt[CON_spike][show_spike])
-    print("\n ---- HV ---   \n ", dt[CON_hiv][show_hiv])
+    print("\n ---- SPIKE actioin ---   \n ", dt[CON_spike][show_spike])
+    print("\n ---- LSNV wrong ---   \n ", dt[CON_dir][show_dir])
     print("\n ---- ITM ---    \n ", dt[CON_itm][show_itm])
     print("\n ---- BE ---   \n ", dt[CON_be][show_be])
     print("\n ---- UNOP ---    \n ", dt[CON_unop][show_unop])
@@ -513,3 +550,9 @@ def t_convert(df, cols, type='float'):
             df[x]=df[x].replace('None', dummy_dt).astype(str)
             df[x]=df[x].apply(lambda i: parser.parse(i))
         return df 
+import math
+def normpdf(x, mean, sd):
+    var = float(sd)**2
+    denom = (2*math.pi*var)**.5
+    num = math.exp(-(float(x)-float(mean))**2/(2*var))
+    return num/denom
