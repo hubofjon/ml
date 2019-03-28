@@ -1,3 +1,10 @@
+mar29
+add 'i_iv_hv' to tbl_c./hist
+fix 'lsnv, 'sec','mar', 'beta' (max loss)
+add 'delta_to_adj','weigh_to_adj' to tbl_c, tbl_ch
+add 'i_delta, i_ic, i_ip' to tbl_spec_candy
+change flask_spec template
+
 mar21
 W5
 1. add 'tgt_po', if days_pct>0.2, no tgt_po then alert
