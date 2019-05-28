@@ -9,3 +9,4 @@ to do
 7.http://www.quantmod.com/
 8.https://github.com/gyanesh-m/Sentiment-analysis-of-financial-news-data
 9.https://github.com/eliangcs/pystock-data
+lookback, p_i_chg, atm/iop/by ticker, if (>2.5 and at candy_dt) then remove from candy, 
