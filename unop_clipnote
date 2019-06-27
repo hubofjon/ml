@@ -1,9 +1,20 @@
-mar29
-add 'i_iv_hv' to tbl_c./hist
-fix 'lsnv, 'sec','mar', 'beta' (max loss)
-add 'delta_to_adj','weigh_to_adj' to tbl_c, tbl_ch
-add 'i_delta, i_ic, i_ip' to tbl_spec_candy
-change flask_spec template
+   ticker  risk_live pl_ur_pct     pl_ur  var_id a_out a_stop a_exit a_unop a_size a_spike a_unop a_key theta_c delta_c
+0     ABT      80.00     -0.18     36.00   34.26                                      True                10.79   29.94
+1      DE    -220.00    -15.13   -740.00   -0.98  True   True          True                  True          0.39   -0.38
+2     DOW     210.00      0.47    -60.00  -16.73                True   True      +           True          1.82  -19.21
+3       I     300.00             -120.00   14.55                       True                  True          2.95   19.30
+4    MTCH     620.00              126.00 -102.99                       True                  True  True   -6.58  -54.26
+5    SGMS   1,010.00     -0.11   -160.00  132.28                       True      -           True          7.92  194.39
+6     AGN    -980.00      6.09 -1,180.00                        True   True      +           True                      
+7    DELL     460.00     -0.32    -80.00  116.72                       True      -           True          4.54   89.48
+8     ASH      20.00     -0.85   -110.00   11.22  True   True          True                  True  True   -2.95    9.30
+9     DXC      20.00     -0.33    -10.00   17.32  True                 True                  True         -4.22   16.43
+10    HAL       8.00     -0.92    -92.00    4.35  True   True          True           True   True         -0.93    7.33
+11    NGL      60.00     -0.70   -140.00   53.86  True   True          True      -    True   True  True   -3.55  177.28
+12   INDA      50.00     -0.86   -300.00  -20.34         True          True           True   True  True   -2.92  -52.83
+13    KEM     140.00     -0.30    -60.00  -27.43                       True                  True         -3.39  -49.13
+14    PPL      75.00     -0.69   -165.00  -10.05         True                         True         True   -0.73  -29.85
+15    WRK     400.00     -0.15     40.00  -72.29  True                 True      -           True         -4.14 -109.02
 
 mar21
 W5
