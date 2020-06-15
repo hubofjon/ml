@@ -1,4 +1,7 @@
 #%%
+symbols_cboe=['VIX', 'VVIX', 'SKEW', 'KCJ', 'VIX9D', 'VIX3M', 'VIX6M', 'VIX1Y',\
+         'VXN', 'RVX', 'VXD', 'OVX', 'GVZ', 'VXSLV', 'VXGDX', 'VXXLE', 'EVZ',\
+         'VXEFA', 'VXEEM', 'VXFXI', 'VXEWZ']
 def get_eod_sync(q_date, symbols, sym_type='IDX_CBOE', duration='1 D'):
 # =============================================================================
 #     use: get eod data from ib
