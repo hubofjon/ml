@@ -1,0 +1,74 @@
+#%%
+def get_eod_sync(q_date, symbols, sym_type='index', window='D'):
+# =============================================================================
+#     use: get eod data from ib
+
+# =============================================================================
+    print("geteod_sync started")
+    start = timer()
+    nest_asyncio.apply()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    try:
+        df_eod= loop.run_until_complete(get_eod_async(q_date, symbols, sym_type, window))
+    finally:
+        loop.close()
+    time.sleep(2)
+    end = timer()
+#    assert(not df_timesales.empty), "_____get_timesale_sync___: empty result"
+    print("get_eod_sync times spent:", timedelta(seconds=end-start))
+    return df_eod
+    
+#%%
+async def get_eod_async(q_date, symbols, sym_type, window):
+#   use: get historical or EOD data for index or ticker: VIX, VVIX, OVX, VXN, GVZ
+
+# connection    
+    client_id=10
+    ib = IB()
+    try:  #1st
+        ib.connect('127.0.0.1', port, client_id, timeout=5, readonly=True)  #7496 live
+    except:
+        try:    #2nd
+            client_id= client_id + random.randint(1,10)
+            ib.connect('127.0.0.1', port, client_id, timeout=5, readonly=True)  #7496 live
+        except:
+            try:    #3rd
+                client_id= client_id + random.randint(1,10)
+                ib.connect('127.0.0.1', port, client_id, timeout=5, readonly=True)  #7496 live
+            except:
+                return ("ib_greeks_async unable to connect after 3 try")
+    ib.reqMarketDataType( 2 )  #frozen data (eod)
+    ib.client.MaxRequests = 0  # max 50 - to pace throttling
+    ib.client.setConnectOptions('+PACEAPI')
+    print("ib connected id: ", client_id)
+    
+# Contruct contract
+    symbols=[x.upper() for x in symbols]
+    sym_type= [x.upper() for x in sym_type]
+    
+    if sym_type=='IDX_OTHER':
+        conts=[Index(e,'SMART','USD') for e in symbols]  
+    elif sym_type=='IDX_CBOE':
+        conts=[Index(e,'CBOE','USD') for e in symbols] 
+    elif sym_type=='STK':
+        conts= [Stock(e,'SMART','USD') for e in symbols]
+        
+    await ib.qualifyContractsAsync(*conts)     
+    
+    bar_eod = ib.reqHistoricalData(
+        conts,
+        endDateTime= '',       
+        durationStr='1 D' ,
+        barSizeSetting= '1 day',  #'1 secs',
+        whatToShow='TRADES',
+        useRTH=1,
+        formatDate=1, # use EST 
+        keepUpToDate=False,
+        chartOptions=[])  
+    ib.sleep(bar_eod)
+    df_eod=util.df(bar_eod)
+
+    ib.disconnect()        
+    return df_eod
